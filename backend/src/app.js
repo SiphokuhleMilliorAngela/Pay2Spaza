@@ -10,7 +10,7 @@ app.get("/health", (req, res) => {
   res.json({
     success: true,
     service: "pay2spaza-backend",
-    status: "healthy"
+    status: " healthy"
   });
 });
 
