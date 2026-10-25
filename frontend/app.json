@@ -1,0 +1,2 @@
+{ "expo": { "name": "Pay2Spaza", "slug": "pay2spaza", "version": "0.1.0", "orientation": "portrait",
+  "plugins": [["expo-camera", { "cameraPermission": "Pay2Spaza uses the camera to scan shop QR codes." }]] } }
