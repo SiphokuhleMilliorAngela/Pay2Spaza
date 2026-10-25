@@ -3,7 +3,8 @@ const transactions = new Map();
 const usedNonces = new Set();
 
 function saveMerchant(merchant) {
-  merchants.set(merchant.merchantId, merchant);
+  const merchantId = merchant.id || merchant.merchantId;
+  merchants.set(merchantId, merchant);
   return merchant;
 }
 
@@ -35,6 +36,11 @@ function hasNonce(nonce) {
   return usedNonces.has(nonce);
 }
 
+function resetTransactions() {
+  transactions.clear();
+  usedNonces.clear();
+}
+
 module.exports = {
   merchants,
   transactions,
@@ -45,5 +51,6 @@ module.exports = {
   getTransaction,
   getMerchantTransactions,
   hasTransaction,
-  hasNonce
+  hasNonce,
+  resetTransactions
 };

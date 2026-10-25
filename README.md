@@ -10,6 +10,40 @@ The solution combines **camera-based QR payments, USSD, SMS, and offline transac
 
 > **Make digital payments accessible, secure, and practical for both spaza shop owners and customers, regardless of the phone they use or the quality of their internet connection.**
 
+## Backend API (current MVP)
+
+Run locally:
+
+```bash
+cd backend
+npm install
+npm start
+```
+
+Run backend tests:
+
+```bash
+cd backend
+npm test
+```
+
+Response envelope for API routes:
+
+```json
+{
+  "success": true,
+  "data": {},
+  "error": null
+}
+```
+
+Current backend endpoints:
+
+- `GET /health`
+- `GET /api/merchants/:id`
+- `GET /api/merchants/:id/transactions`
+- `POST /api/transactions/sync`
+
 ---
 
 ## 💡 The Problem
