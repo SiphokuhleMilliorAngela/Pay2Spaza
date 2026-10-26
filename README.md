@@ -109,6 +109,178 @@ For the hackathon, Pay2Spaza therefore demonstrates offline capture using **simu
 
 ---
 
+## ✅ Solution Enhancement Requirements
+
+The following requirements form part of the Pay2Spaza hackathon solution and define how the prototype must respond to connectivity, financial risk, merchant trust and affordability.
+
+### REQ-01: Offline Payment Continuity
+
+Pay2Spaza must allow an eligible payment to be securely captured when internet connectivity is unavailable and synchronised when connectivity returns.
+
+- The solution must detect whether the device is connected or offline.
+- An offline transaction must be stored as **PENDING — NOT SETTLED**.
+- The merchant must not receive a confirmed-payment message until the transaction has been successfully validated.
+- Pending transactions must automatically enter the synchronisation process when connectivity returns.
+- The merchant must be able to see which transactions are still waiting to synchronise.
+
+### REQ-02: Offline Transaction Risk Limits
+
+Pay2Spaza must apply configurable controls before allowing a transaction to be recorded offline.
+
+- A maximum offline value per transaction must be configurable.
+- A cumulative offline-value limit per customer/device or supported credential must be configurable.
+- The number of outstanding offline transactions must be limited.
+- Transactions that exceed the applicable offline rules must be rejected or require an alternative payment method.
+- Prototype limits must remain configurable and must not be represented as production-approved thresholds.
+
+### REQ-03: Insufficient-Funds and Settlement Risk
+
+Pay2Spaza must clearly distinguish between recording an offline payment request and confirming successful payment.
+
+- The solution must not assume that sufficient funds exist when a live balance or authorisation check cannot be completed.
+- Offline transactions must remain pending until validation and payment processing are completed.
+- Failed transactions must be updated to **REJECTED** and must not be included in confirmed merchant income.
+- The prototype must demonstrate insufficient-funds scenarios using simulated balances.
+- Production implementation must support an agreed loss-allocation policy defining whether eligible losses are carried by the merchant, payment provider or other participating party.
+
+### REQ-04: Fraud, Replay and Duplicate Protection
+
+Pay2Spaza must protect offline and synchronised transactions against basic transaction-manipulation risks.
+
+Each applicable transaction must include or reference:
+
+- A unique transaction ID
+- A unique nonce
+- Timestamp and expiry information
+- Merchant and customer/device references
+- Amount and currency
+- Transaction status
+- A digital signature or equivalent integrity control
+
+During synchronisation, Pay2Spaza must check for duplicate transaction IDs, reused nonces, expired transactions and invalid transaction records before submission.
+
+### REQ-05: Offline Reconciliation
+
+When connectivity returns, Pay2Spaza must reconcile transactions captured offline.
+
+```text
+PENDING → SYNCING → VALIDATING → CONFIRMED
+                              └→ REJECTED
+```
+
+- Synchronised transactions must be validated before being marked confirmed.
+- Duplicate or invalid records must not be submitted twice.
+- Failed reconciliation must produce a clear exception/status for the merchant.
+- The solution must retain sufficient transaction information to support an audit trail.
+
+### REQ-06: Simple Merchant Dashboard
+
+Pay2Spaza must provide a simple business dashboard that a spaza shop owner can understand without technical or accounting knowledge.
+
+The dashboard must show, at minimum:
+
+- Money received today
+- Money received this month
+- Monthly confirmed-income trend
+- Number and value of confirmed transactions
+- Pending offline transactions
+- Rejected transactions
+- Average transaction value
+- Best-performing products
+- Low-performing or slow-moving products
+- Payment-channel usage, where available
+- Clear alerts for transactions requiring attention
+
+Only **CONFIRMED** transactions must contribute to realised sales/income totals. Pending transactions must be displayed separately.
+
+### REQ-07: Product-Level Business Insights
+
+Pay2Spaza must capture enough basket/order information to calculate product performance.
+
+Each relevant sale should capture:
+
+- Product or product ID
+- Quantity
+- Unit price
+- Total line value
+- Associated transaction ID
+- Transaction status
+- Transaction date/time
+
+The dashboard must use this information to identify products generating the most sales and products with low sales over the selected period.
+
+### REQ-08: Merchant Payment Status
+
+Pay2Spaza must use simple, consistent payment statuses so that the merchant always understands whether money has actually been received.
+
+The merchant-facing statuses must include:
+
+- **Pending** — recorded but not yet confirmed
+- **Confirmed** — payment successfully validated/processed
+- **Rejected** — payment failed validation or processing
+
+Technical statuses may exist internally, but the merchant experience must remain simple.
+
+### REQ-09: Merchant Affordability and Transparent Charges
+
+Pay2Spaza must make applicable prototype fees or charges clear to the merchant and must not rely on hidden charges.
+
+- Merchant transaction costs must be visible in the proposed business model.
+- The prototype must allow affordability to be assessed as part of merchant adoption.
+- Any customer surcharge mechanism must remain subject to validation against applicable payment-provider agreements and regulatory requirements before production use.
+
+### REQ-10: Merchant Trust and Adoption
+
+Pay2Spaza must prioritise merchant trust throughout the payment experience.
+
+- The solution must verify the merchant identity presented to the customer.
+- The merchant must receive clear confirmation only after successful payment validation.
+- Pending and rejected transactions must be easy to identify.
+- The merchant must be able to review transaction history and outstanding exceptions.
+- The dashboard must provide useful business information in addition to payment processing.
+
+### REQ-11: Recovery and Exception Handling
+
+Pay2Spaza must support defined exception scenarios for offline transactions.
+
+The prototype must cater for or demonstrate handling of:
+
+- Connectivity returning after an extended period
+- Expired offline transactions
+- Duplicate synchronisation attempts
+- Failed validation
+- Corrupted or altered transaction records
+- Device loss before synchronisation, where technically feasible within the MVP
+
+### REQ-12: Controlled Offline Acceptance
+
+Pay2Spaza must use controlled offline acceptance rather than treating every offline transaction as guaranteed payment.
+
+```text
+Payment initiated
+      ↓
+Connectivity available?
+   ↙             ↘
+ YES              NO
+  ↓                ↓
+Live flow     Apply offline controls
+                   ↓
+             Within limits?
+              ↙         ↘
+            YES          NO
+             ↓            ↓
+       Record pending   Reject / use
+          payment       another method
+             ↓
+       Reconnect and reconcile
+             ↓
+      CONFIRMED / REJECTED
+```
+
+This requirement allows Pay2Spaza to remain useful during connectivity problems while controlling merchant exposure and avoiding false confirmation of payment.
+
+---
+
 ## 🛡️ Offline Risk Controls
 
 Before recording an offline transaction, the prototype can evaluate:
@@ -212,12 +384,15 @@ Official resources:
 
 The dashboard must be **simple enough for a spaza owner to understand at a glance**, not a complex banking dashboard.
 
-It should answer four practical questions:
+It should answer five practical questions:
 
-1. **How much money has come in?**
-2. **Which products are selling well?**
-3. **Which products are not doing well?**
-4. **Which payments still need attention?**
+1. **How much money has come in today and this month?**
+2. **How has money coming in changed over recent months?**
+3. **Which products are doing well?**
+4. **Which products are not doing well?**
+5. **Which payments still need attention?**
+
+The goal is not to build an accounting system. The dashboard should give the owner a **quick, visual health check of the business** using plain language and only the information needed to make day-to-day decisions.
 
 ### Dashboard MVP
 
@@ -352,74 +527,6 @@ Any proposed customer surcharge or merchant payment fee would need to align with
 
 ---
 
-## ❓ Core Business Questions
-
-Before production, the team must be able to answer:
-
-- **Offline limits:** What is the maximum transaction and cumulative offline exposure?
-- **Loss allocation:** Who bears the loss when a payment recorded offline later fails?
-- **Fraud:** How are replay, duplicate, expired and repeated offline-spend attempts managed?
-- **Merchant experience:** How does the merchant distinguish accepted, pending and rejected payments?
-- **Affordability:** What does the merchant pay, and does the cost still make digital acceptance attractive?
-- **Recovery:** What happens when a device is lost or a transaction cannot be synchronised?
-- **Product analytics:** How is basket-level product information captured so the dashboard can identify top and slow sellers?
-
----
-
-## 🧑‍⚖️ Questions Hackathon Judges May Ask
-
-### Why would a spaza shop owner use this instead of cash?
-
-Pay2Spaza combines flexible payment channels with verified merchant identities, honest transaction statuses and simple business insights. The merchant gains a digital payment record plus visibility into money coming in and products performing well.
-
-### Who pays if an offline payment fails later?
-
-The prototype does not hide this risk. It demonstrates configurable exposure controls and marks offline transactions as pending. A real deployment would require an agreed loss-allocation policy with the relevant regulated payment participants.
-
-### What stops a customer spending the same funds repeatedly while offline?
-
-The prototype limits exposure using transaction IDs, nonces, digital signatures, per-transaction limits, cumulative limits and outstanding-transaction counts. These reduce risk but do not replace live authorisation.
-
-### What if a merchant is offline for hours or days?
-
-Transactions stay pending, subject to expiry and exposure rules, until synchronisation is possible. The merchant dashboard keeps those transactions separate from confirmed income.
-
-### How do you measure impact?
-
-Potential measures include:
-
-- Digital-payment acceptance rate
-- Number/value of confirmed payments
-- Percentage of transactions initiated under low-connectivity conditions
-- Offline-to-confirmed conversion rate
-- Rejected/expired offline transaction rate
-- Active merchants
-- Repeat customers
-- Merchant revenue trend
-- Product sales trend
-
----
-
-## 👩🏾‍💼 Data / Business Analysis Contribution
-
-The Data/BA role helps ensure that Pay2Spaza is not only buildable, but solves the right problem.
-
-Key ownership areas include:
-
-- Problem statement and target-user needs
-- Business requirements and acceptance criteria
-- Offline journey and exception scenarios
-- Risk register, assumptions and open questions
-- Loss-allocation requirement
-- Merchant adoption and affordability
-- Dashboard and business metrics
-- Data requirements and analytics
-- Evidence used to demonstrate impact
-
-The strongest prototype connects the technical demo to a credible story about **merchant trust, financial risk, useful data and real-world adoption**.
-
----
-
 ## 🛠️ Technology Stack
 
 - **Mobile:** React Native, Expo Development Build, TypeScript/JavaScript, SQLite
@@ -469,8 +576,6 @@ Sync → Validate → Fraud / Replay Checks → Submit → CONFIRMED or REJECTED
 Dial USSD → Merchant Code → Amount → Verify Merchant → Confirm → SMS Status
 ```
 
----
-
 ## 🔮 Future Features
 
 - PayShap integration
@@ -514,3 +619,4 @@ It is not a production-ready banking, settlement or offline stored-value system.
 **Built for the realities of Mzansi.**
 
 </div>
+
