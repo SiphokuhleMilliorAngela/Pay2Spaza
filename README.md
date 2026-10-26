@@ -2,72 +2,51 @@
 
 > **Inclusive payments for Mzansi spaza shops, even when connectivity is unreliable.**
 
-Pay2Spaza is an **offline-first, open payment solution** designed for South African spaza shops and their customers.
+Pay2Spaza is an **offline-first, open payment solution** designed for South African spaza shops and their customers. It combines **QR payments, USSD, SMS, offline transaction recording, Open Payments and Interledger concepts** to provide a practical payment experience for township and rural environments.
 
-The solution combines **camera-based QR payments, USSD, SMS, and offline transaction recording** with **Open Payments and Interledger** to create a payment experience that remains usable in township and rural environments where mobile-data connectivity may be limited or unreliable.
-
-## Our Goal
-
-> **Make digital payments accessible, secure, and practical for both spaza shop owners and customers, regardless of the phone they use or the quality of their internet connection.**
+> **Our goal:** Make digital payments accessible, secure and practical for spaza shop owners and customers, regardless of the phone they use or the quality of their connection.
 
 ---
 
 ## 💡 The Problem
 
-Spaza shops play an important role in South African communities, but many merchants and customers still depend heavily on cash.
-
-Digital-payment adoption can be difficult because of:
+Spaza shops are essential community businesses, but digital payments can be difficult when merchants face:
 
 - Unreliable mobile-data connectivity
-- High data costs
-- Limited access to smartphones
+- High data costs and limited smartphone access
 - Dependence on cash
-- Payment transaction fees
-- Delayed payment confirmation
-- Fraud and fake proof-of-payment scams
-- Merchant impersonation
-- SIM-swap and account-takeover risks
+- Payment fees and delayed confirmation
+- Fake proof-of-payment scams
+- Merchant impersonation and account-takeover risk
 - Fragmented payment experiences
 
-Most digital-payment solutions assume that the customer and merchant are continuously connected to the internet.
+**Pay2Spaza starts with a different assumption: connectivity may disappear at any time.**
 
-**Pay2Spaza is designed around the opposite assumption: connectivity may disappear at any time.**
+### The two problems we must solve together
+
+1. **Connectivity:** Can a payment journey remain usable when the network is weak or unavailable?
+2. **Financial risk:** If a transaction is captured offline, how do we protect the merchant when live funds cannot be verified?
+
+Offline acceptance is therefore **not the same as guaranteed payment**. The prototype records an offline payment intent securely and marks it as pending until it can be validated and submitted.
 
 ---
 
 ## 🚀 Our Solution
 
-Pay2Spaza provides multiple ways for customers to initiate payments.
+Pay2Spaza offers multiple payment journeys:
 
-### 📷 Camera and QR Payments
+### 📷 QR Payment
 
-Customers with smartphones can scan a verified Pay2Spaza merchant QR code using their phone camera.
+1. Customer scans the merchant QR code.
+2. Pay2Spaza displays the verified shop name.
+3. Customer enters or confirms the amount.
+4. Customer approves the payment.
+5. The transaction is submitted immediately if connected, or securely recorded as pending if fully offline.
+6. The customer and merchant receive a clear status.
 
-The customer can:
+### 📱 USSD
 
-1. Scan the merchant QR code.
-2. View the verified shop name.
-3. Enter or confirm the amount.
-4. Approve the payment.
-5. Receive a digital receipt.
-
-```text
-┌──────────────────────────┐
-│        Pay2Spaza         │
-│                          │
-│    ✓ VERIFIED MERCHANT   │
-│                          │
-│        [ QR CODE ]       │
-│                          │
-│ Merchant: SPZ12345       │
-│                          │
-│      Scan to Pay         │
-└──────────────────────────┘
-```
-
-### 📱 USSD Payments
-
-Customers without mobile data, including feature-phone users, can initiate payments through USSD.
+Feature-phone or no-data customers can use a USSD journey:
 
 ```text
 *120*321#
@@ -78,789 +57,452 @@ Customers without mobile data, including feature-phone users, can initiate payme
 4. Help
 ```
 
-A customer could enter:
+### 💬 SMS
 
-```text
-Merchant Code: SPZ12345
-Amount: R50.00
-```
-
-Pay2Spaza displays the verified merchant name before the customer confirms the transaction.
-
-### 💬 SMS Notifications
-
-SMS can support:
-
-- Payment notifications
-- Transaction receipts
-- Payment-status updates
-- Low-connectivity communication
-
-```text
-Pay2Spaza
-
-Payment Confirmed ✅
-
-Merchant: Thuba's Spaza
-Amount: R50.00
-Transaction: P2S-82931
-
-Thank you for using Pay2Spaza.
-```
-
-> **Security note:** SMS is mainly used for notifications and confirmations. It is not treated as the primary secure payment-authorisation mechanism.
+SMS supports payment notifications, receipts and status updates. It is **not** treated as the primary secure payment-authorisation mechanism.
 
 ---
 
-## 🌐 Offline-First Design
+## 🌐 Connectivity Model
 
-Pay2Spaza distinguishes between three connectivity states:
+| State | Connectivity | Pay2Spaza behaviour |
+|---|---|---|
+| 🟢 Connected | Wi-Fi/mobile data | Authorise and submit payment |
+| 🟠 Low connectivity | No data, but cellular signalling available | Use supported USSD/SMS journeys |
+| ⚫ Fully offline | No internet or cellular network | Securely record the transaction locally for later synchronisation |
 
-| State | Connectivity | Example | Pay2Spaza behaviour |
-|---|---|---|---|
-| 🟢 Connected | Internet available | Wi-Fi or mobile data | Payment can be authorised and settled |
-| 🟠 Low connectivity | No mobile data | USSD or SMS available | Payment can be processed through cellular signalling |
-| ⚫ Fully offline | No internet or cellular network | No available network | Transaction is securely recorded locally and synchronised later |
-
-### ⚠️ Offline Does Not Mean Settled
-
-A key Pay2Spaza principle is:
+### ⚠️ Offline does not mean settled
 
 > **Never tell a merchant that money has been received when settlement has not actually happened.**
 
-When both devices are completely offline, Pay2Spaza creates a:
-
 ```text
-PENDING — NOT SETTLED
+LOCAL_PENDING → SYNCING → VALIDATING → CONFIRMED
+                                  └──→ REJECTED
 ```
 
-Once connectivity returns, the transaction follows one of these status paths:
-
-```text
-PENDING → SYNCING → VALIDATING → CONFIRMED
-```
-
-or:
-
-```text
-PENDING → SYNCING → VALIDATING → REJECTED
-```
-
-This helps protect merchants from fake payment confirmations.
+This distinction is central to merchant trust.
 
 ---
 
-## 🏗️ How Pay2Spaza Works
+## ⚖️ Offline Payment Risk and Loss Allocation
 
-```text
-                 CUSTOMER
-                     │
-        ┌────────────┼────────────┐
-        │            │            │
-      Camera        USSD         SMS
-       / QR
-        │            │            │
-        └────────────┼────────────┘
-                     │
-                     ▼
-              Pay2Spaza Platform
-                     │
-          ┌──────────┴──────────┐
-          │                     │
-     Fraud & Security      Transaction
-        Controls              Engine
-          │                     │
-          └──────────┬──────────┘
-                     │
-                     ▼
-              Open Payments
-                     │
-                     ▼
-                Interledger
-                     │
-                     ▼
-          Wallet / Payment Provider
-                     │
-                     ▼
-                 SPAZA SHOP
-```
+Consider this scenario:
+
+> A customer takes **R150** of groceries while the merchant is offline. When connectivity returns, the payment cannot be completed because the customer's available funds are insufficient.
+
+The key business question is: **who carries the R150 loss?**
+
+| Possible arrangement | Business impact |
+|---|---|
+| Merchant bears the loss | High merchant risk and potentially low adoption |
+| Payment provider bears eligible loss | Merchant receives protection subject to provider rules and limits |
+| Risk is shared | Loss allocation follows an agreed commercial/risk policy |
+| Offline transaction is rejected | Lowest acceptance risk, but reduces usefulness during outages |
+
+### Pay2Spaza principle
+
+**Loss allocation must be treated as a core business requirement, not an implementation detail.**
+
+A transaction limit limits exposure but does **not** prove funds are available. Multiple offline purchases can still create cumulative exposure.
+
+For the hackathon, Pay2Spaza therefore demonstrates offline capture using **simulated balances, configurable limits and clear pending statuses**, without claiming guaranteed real-money offline settlement.
 
 ---
 
-## 📷 Camera-Based Payment Flow
+## 🛡️ Offline Risk Controls
 
-Each verified merchant receives a Pay2Spaza QR code.
+Before recording an offline transaction, the prototype can evaluate:
 
-A basic QR code can contain or reference:
-
-```json
-{
-  "merchantId": "SPZ12345",
-  "walletAddress": "merchant-wallet-reference",
-  "currency": "ZAR"
-}
-```
-
-A dynamic QR code could additionally contain:
-
-```json
-{
-  "merchantId": "SPZ12345",
-  "amount": 50.00,
-  "currency": "ZAR",
-  "transactionId": "P2S-82931",
-  "nonce": "unique-value",
-  "expiresAt": "timestamp"
-}
-```
-
-> Sensitive information should not be stored directly inside the QR code.
-
----
-
-## ✅ Merchant Verification
-
-One of Pay2Spaza's most important features is ensuring that customers know who they are paying.
-
-Before confirming a payment, the customer sees:
-
-```text
-Pay2Spaza
-
-✓ VERIFIED MERCHANT
-
-Thuba's Spaza
-Merchant ID: SPZ12345
-
-Amount: R50.00
-
-[ Confirm Payment ]
-```
-
-This helps reduce:
-
-- Fake merchant accounts
-- QR-code replacement scams
-- Merchant impersonation
-- Payments sent to incorrect accounts
-
----
-
-## 🛡️ Fraud Prevention
-
-Pay2Spaza uses multiple layers of fraud protection.
-
-### Merchant Controls
-
-- Merchant identity verification
-- Mobile-number verification
-- Unique merchant ID
+- Supported payment credential
+- Maximum permitted offline amount
+- Cumulative offline amount
+- Number of outstanding offline transactions
+- Transaction expiry
 - Device binding
-- Verified merchant profile
-- Controlled payout-account changes
-- Duplicate merchant detection
-
-### Transaction Controls
-
-Every transaction can contain:
-
-- Transaction ID
-- Merchant ID
-- Customer ID
-- Device ID
-- Timestamp
-- Amount
-- Currency
-- Nonce
+- Unique transaction ID
+- Unique nonce
 - Digital signature
-- Transaction status
+- Locally available risk indicators
 
-### 🔁 Replay Protection
-
-Every transaction receives a unique combination:
+### Replay and duplicate protection
 
 ```text
-Transaction ID + Nonce
-```
-
-If someone attempts to submit the same transaction again:
-
-```text
-Transaction Received
+Transaction received
         ↓
 Check Transaction ID
         ↓
 Check Nonce
         ↓
-Duplicate Detected
-        ↓
-REJECT TRANSACTION
+Duplicate detected?
+      ↙     ↘
+    Yes      No
+     ↓        ↓
+   REJECT   CONTINUE
 ```
 
-### 💰 Transaction Limits
-
-Offline transactions should have stricter limits.
-
-Prototype example:
-
-```text
-Maximum offline transaction: R200
-Maximum offline transactions: 5 before synchronisation
-```
-
-> These are prototype values only. Production limits would require proper risk modelling, testing, and approval.
+Prototype limits, such as **R200 per offline transaction or five transactions before synchronisation**, are demonstration values only and require proper risk modelling before any real deployment.
 
 ---
 
-## 📴 Offline Transaction Flow
-
-When two smartphones have no connectivity:
+## 📴 Offline Transaction Journey
 
 ```text
-Customer
-   │
-   │ Scan Merchant QR
-   ▼
-Merchant Device
-   │
-   ▼
-Create Payment Request
-   │
-   ▼
-Customer Signs Transaction
-   │
-   ▼
-Merchant Confirms Receipt
-   │
-   ▼
-Encrypted Local Storage
-   │
-   ▼
+Customer initiates payment
+          ↓
+Apply offline risk controls
+          ↓
+Accept or reject under prototype rules
+          ↓
+Create signed transaction record
+          ↓
+Encrypted local storage
+          ↓
 PENDING — NOT SETTLED
+          ↓
+Connectivity restored
+          ↓
+Synchronise + validate
+          ↓
+Duplicate / replay / fraud checks
+          ↓
+Submit payment
+       ↙       ↘
+ CONFIRMED    REJECTED
 ```
 
-When connectivity returns:
+### Recovery and reconciliation
 
-```text
-Connectivity Restored
-        │
-        ▼
-Synchronise Transaction
-        │
-        ▼
-Verify Digital Signature
-        │
-        ▼
-Check Nonce
-        │
-        ▼
-Check Duplicate Transaction
-        │
-        ▼
-Apply Fraud Rules
-        │
-        ▼
-Submit Payment
-        │
-        ▼
-CONFIRMED or REJECTED
-```
+The design must also address exceptions such as:
+
+- Device loss before synchronisation
+- Altered or corrupted transaction records
+- Long periods without connectivity
+- Expired offline requests
+- Duplicate submissions
+- Failed authorisation after reconnection
 
 ---
 
-## 🔗 Open Payments
+## 🔗 Open Payments and Interledger
 
-Pay2Spaza uses **Open Payments** as the standardised API layer between the Pay2Spaza platform and participating wallet or account providers.
+**Open Payments** is the standardised API layer used by the prototype to model interactions with participating account or wallet providers. It supports concepts including wallet addresses, authorisation, incoming payments, quotes and outgoing payments.
 
-Open Payments can support concepts such as:
-
-- Wallet addresses
-- Payment authorisation
-- Incoming payments
-- Quotes
-- Outgoing payments
-- Permission-based payment flows
-
-**Official documentation:** [openpayments.dev](https://openpayments.dev/)
-
----
-
-## 🌍 Interledger and Rafiki
-
-Interledger provides an interoperability layer that can enable value to move between different payment systems or wallets.
-
-For the hackathon, Pay2Spaza can demonstrate this using an Interledger and Rafiki sandbox environment.
+**Interledger / Rafiki** provides the interoperability story between participating payment systems in the hackathon environment.
 
 ```text
 Customer Wallet
-      │
-      ▼
+      ↓
 Open Payments
-      │
-      ▼
-Interledger
-      │
-      ▼
-Rafiki
-      │
-      ▼
+      ↓
+Interledger / Rafiki
+      ↓
 Merchant Wallet
 ```
 
-**Official resources:**
+**Important architectural boundary:** Open Payments and Interledger support the connected payment/interoperability layer. Pay2Spaza's offline capture, local risk rules and later synchronisation are separate prototype capabilities. The solution does not assume that interoperability itself guarantees offline authorisation or settlement.
 
-- [Interledger](https://interledger.org/)
-- [Rafiki](https://rafiki.dev/)
+Official resources:
+- https://openpayments.dev/
+- https://interledger.org/
+- https://rafiki.dev/
 
 ---
 
-## 🛠️ Technology Stack
+## 📊 Simple Merchant Business Dashboard
 
-### Mobile Application
+The dashboard must be **simple enough for a spaza owner to understand at a glance**, not a complex banking dashboard.
 
-- React Native
-- Expo Development Build
-- TypeScript or JavaScript
-- SQLite
+It should answer four practical questions:
 
-Used for:
+1. **How much money has come in?**
+2. **Which products are selling well?**
+3. **Which products are not doing well?**
+4. **Which payments still need attention?**
 
-- Camera scanning
-- Merchant QR generation
-- Offline transaction storage
-- Transaction history
-- Synchronisation
-- Customer receipts
+### Dashboard MVP
 
-### Backend
+| Dashboard area | What the merchant sees | Why it matters |
+|---|---|---|
+| Money In | Total confirmed sales for today/month | Quick view of business performance |
+| Monthly Income Trend | Sales value by month | Shows whether income is growing or declining |
+| Top Products | Best-selling products by quantity/revenue | Shows what is doing well |
+| Slow Products | Low-selling products | Helps identify stock that is not moving |
+| Transactions | Confirmed, pending and rejected payments | Keeps payment status visible |
+| Channel Mix | QR, USSD and other supported channels | Shows how customers prefer to pay |
+| Average Sale | Average transaction value | Gives a simple view of customer spend |
+| Alerts | Pending sync, rejected payments, unusual activity | Shows what needs action |
 
-- Node.js
-- Express.js
-
-Responsibilities:
-
-- Authentication
-- Merchant management
-- Transaction orchestration
-- Fraud rules
-- Synchronisation
-- Open Payments integration
-- Reconciliation
-
-### Database
-
-#### Local Database
-
-- SQLite
-
-Used for:
-
-- Offline transactions
-- Pending synchronisation
-- Local transaction history
-
-#### Server Database
-
-- PostgreSQL
-
-Used for:
-
-- Merchant profiles
-- Customer profiles
-- Transactions
-- Payment statuses
-- Fraud events
-- Audit logs
-- Reconciliation
-
-### ☁️ Cloud
-
-Microsoft Azure can host the Pay2Spaza platform.
-
-Potential services:
-
-- Azure App Service
-- Azure Functions
-- Azure Database for PostgreSQL
-- Azure Key Vault
-- Azure Monitor
-
-### 📡 USSD and SMS Integration
-
-A potential gateway is **Africa's Talking** or another supported South African SMS and USSD provider.
+### Example merchant view
 
 ```text
-Feature Phone
-      │
-      ▼
-Mobile Network
-      │
-      ▼
-USSD / SMS Gateway
-      │
-      ▼
-Pay2Spaza API
-      │
-      ▼
-Payment Provider
+┌─────────────────────────────────────┐
+│ Pay2Spaza Business Overview         │
+├─────────────────────────────────────┤
+│ Money In This Month     R 12,450    │
+│ Confirmed Transactions      238     │
+│ Pending Transactions          4     │
+│ Average Sale             R 52.31    │
+├─────────────────────────────────────┤
+│ MONTHLY SALES                       │
+│ Jul  ██████        R 8,100          │
+│ Aug  ████████      R 9,750          │
+│ Sep  █████████    R 11,200          │
+│ Oct  ██████████   R 12,450          │
+├─────────────────────────────────────┤
+│ TOP PRODUCTS                        │
+│ 1. Bread                            │
+│ 2. Milk                             │
+│ 3. Cold drinks                      │
+├─────────────────────────────────────┤
+│ NEEDS ATTENTION                     │
+│ Slow moving: Product X              │
+│ Pending sync: 4 transactions        │
+│ Rejected: 2 transactions            │
+└─────────────────────────────────────┘
 ```
 
----
+> **Note:** The figures and products above are illustrative hackathon demo data, not real merchant financial results.
 
-## Hackathon MVP Scope
+### Product-performance data requirement
 
-The hackathon MVP focuses on features that can realistically be demonstrated.
+To show which products perform well, the payment transaction alone is not enough. The prototype must also capture a lightweight **basket/order record** linking a transaction to products, quantities and prices.
 
-### ✅Build Now
-
-#### Merchant
-
-- Merchant registration
-- Merchant verification
-- Merchant QR generation
-- Merchant transaction history
-- Offline transaction queue
-
-#### Customer
-
-- Scan merchant QR code
-- Verify merchant name
-- Enter payment amount
-- Confirm payment
-- View transaction status
-- Receive digital receipt
-
-#### Payments
-
-- Open Payments sandbox integration
-- Interledger and Rafiki test integration
-- Simulated wallet balances
-- Connected QR payment
-- Offline transaction recording
-- Transaction synchronisation
-
-#### Low Connectivity
-
-- USSD payment simulation
-- SMS payment notifications
-
-#### Security
-
-- Device binding
-- Transaction IDs
-- Nonces
-- Digital signatures
-- Replay protection
-- Transaction limits
-- Rules-based fraud detection
-
-### Optional Hackathon Feature: Bluetooth Low Energy
-
-Two smartphones could exchange a signed payment intent using Bluetooth Low Energy.
-
-```text
-Customer Phone
-      │
-      │ Bluetooth
-      ▼
-Merchant Phone
-      │
-      ▼
-Signed Transaction
-      │
-      ▼
-Local Storage
-      │
-      ▼
-PENDING
-```
-
-> BLE should only be attempted once the main QR-payment journey is working.
-
----
-
-## Future Features
-
-The longer-term Pay2Spaza vision could include:
-
-- NFC payments
-- PayShap integration
-- Request-to-Pay
-- Multiple wallet providers
-- Interoperable national QR
-- Advanced merchant verification
-- Hardware-backed device keys
-- Fraud graph analysis
-- AI-assisted fraud investigation
-- Merchant analytics
-- Cash-in and cash-out networks
-- Multi-bank integration
-- Cross-border Interledger payments
-
----
-
-## What We Are Not Building Yet
-
-To keep the MVP realistic, the following are intentionally excluded:
-
-- ❌ Guaranteed real-money offline settlement
-- ❌ NFC payment-card emulation
-- ❌ AI-controlled payment approval
-- ❌ Credit or lending
-- ❌ Production banking integration
-- ❌ Cross-border settlement
-- ❌ Production biometric identity verification
-
----
-
-## Why Not AI First?
-
-Azure OpenAI was considered for fraud detection. For the MVP, Pay2Spaza uses rules-based fraud detection.
-
-```javascript
-if (transaction.nonceAlreadyUsed) {
-  rejectTransaction("Possible replay attack");
-}
-
-if (transaction.amount > offlineLimit) {
-  rejectTransaction("Offline transaction limit exceeded");
-}
-
-if (merchant.deviceRecentlyChanged) {
-  flagTransaction("Merchant device changed");
-}
-```
-
-This approach is:
-
-- Easier to explain
-- Easier to test
-- More predictable
-- Better suited to limited hackathon data
-
-AI and machine learning can later support fraud investigators once Pay2Spaza has sufficient transaction data.
-
----
-
-## Example Transaction Object
+Example:
 
 ```json
 {
   "transactionId": "P2S-82931",
   "merchantId": "SPZ12345",
-  "customerId": "CUS45678",
-  "amount": 50.00,
-  "currency": "ZAR",
-  "channel": "QR",
-  "nonce": "8f92a1c7",
-  "status": "PENDING",
-  "offline": true,
-  "createdAt": "2026-10-19T14:30:00Z"
+  "status": "CONFIRMED",
+  "total": 50.00,
+  "items": [
+    { "product": "Bread", "quantity": 2, "unitPrice": 20.00 },
+    { "product": "Milk", "quantity": 1, "unitPrice": 10.00 }
+  ]
 }
 ```
 
----
-
-## Transaction Statuses
-
-| Status | Meaning |
-|---|---|
-| `LOCAL_PENDING` | Transaction exists only on the device |
-| `SUBMITTED` | Transaction has reached the Pay2Spaza backend |
-| `CONFIRMED` | Payment provider confirms successful payment |
-| `REJECTED` | Payment failed validation or authorisation |
-| `EXPIRED` | Offline payment request was not synchronised within the permitted period |
+Only **confirmed** payments should count as realised sales in the main income totals. Pending payments should be shown separately to avoid overstating income.
 
 ---
 
-## Suggested Repository Structure
+## 🏪 Merchant Trust and Adoption
 
+Technical functionality alone is not enough. A merchant must believe Pay2Spaza is safer and more useful than accepting cash only.
+
+The solution should therefore be:
+
+- **Simple:** Minimal steps and plain transaction statuses
+- **Trustworthy:** Never present pending funds as received
+- **Affordable:** Avoid costs that make cash more attractive
+- **Useful:** Provide payment history and easy business insights
+- **Transparent:** Clearly distinguish confirmed, pending and rejected payments
+- **Recoverable:** Provide a reconciliation process when something goes wrong
+
+Any proposed customer surcharge or merchant payment fee would need to align with the applicable provider arrangement and regulatory requirements before production deployment.
+
+---
+
+## 🎯 Hackathon MVP Scope
+
+### ✅ Build Now
+
+**Merchant**
+- Registration and verification
+- Merchant QR generation
+- Transaction history
+- Offline transaction queue
+- Simple business dashboard
+
+**Customer**
+- Scan QR
+- Verify merchant
+- Enter amount
+- Confirm payment
+- View transaction status
+- Receive digital receipt
+
+**Payments**
+- Open Payments sandbox flow
+- Interledger/Rafiki test flow
+- Simulated wallet balances
+- Connected QR payment
+- Offline transaction recording
+- Synchronisation
+
+**Data and Insights**
+- Monthly money-in trend
+- Confirmed sales totals
+- Top-performing products
+- Slow-performing products
+- Transaction status counts
+- Payment-channel breakdown
+
+**Low Connectivity**
+- USSD payment simulation
+- SMS payment notifications
+
+**Security and Risk**
+- Device binding
+- Transaction IDs and nonces
+- Digital signatures
+- Replay protection
+- Offline limits
+- Rules-based fraud controls
+
+---
+
+## ❓ Core Business Questions
+
+Before production, the team must be able to answer:
+
+- **Offline limits:** What is the maximum transaction and cumulative offline exposure?
+- **Loss allocation:** Who bears the loss when a payment recorded offline later fails?
+- **Fraud:** How are replay, duplicate, expired and repeated offline-spend attempts managed?
+- **Merchant experience:** How does the merchant distinguish accepted, pending and rejected payments?
+- **Affordability:** What does the merchant pay, and does the cost still make digital acceptance attractive?
+- **Recovery:** What happens when a device is lost or a transaction cannot be synchronised?
+- **Product analytics:** How is basket-level product information captured so the dashboard can identify top and slow sellers?
+
+---
+
+## 🧑‍⚖️ Questions Hackathon Judges May Ask
+
+### Why would a spaza shop owner use this instead of cash?
+
+Pay2Spaza combines flexible payment channels with verified merchant identities, honest transaction statuses and simple business insights. The merchant gains a digital payment record plus visibility into money coming in and products performing well.
+
+### Who pays if an offline payment fails later?
+
+The prototype does not hide this risk. It demonstrates configurable exposure controls and marks offline transactions as pending. A real deployment would require an agreed loss-allocation policy with the relevant regulated payment participants.
+
+### What stops a customer spending the same funds repeatedly while offline?
+
+The prototype limits exposure using transaction IDs, nonces, digital signatures, per-transaction limits, cumulative limits and outstanding-transaction counts. These reduce risk but do not replace live authorisation.
+
+### What if a merchant is offline for hours or days?
+
+Transactions stay pending, subject to expiry and exposure rules, until synchronisation is possible. The merchant dashboard keeps those transactions separate from confirmed income.
+
+### How do you measure impact?
+
+Potential measures include:
+
+- Digital-payment acceptance rate
+- Number/value of confirmed payments
+- Percentage of transactions initiated under low-connectivity conditions
+- Offline-to-confirmed conversion rate
+- Rejected/expired offline transaction rate
+- Active merchants
+- Repeat customers
+- Merchant revenue trend
+- Product sales trend
+
+---
+
+## 👩🏾‍💼 Data / Business Analysis Contribution
+
+The Data/BA role helps ensure that Pay2Spaza is not only buildable, but solves the right problem.
+
+Key ownership areas include:
+
+- Problem statement and target-user needs
+- Business requirements and acceptance criteria
+- Offline journey and exception scenarios
+- Risk register, assumptions and open questions
+- Loss-allocation requirement
+- Merchant adoption and affordability
+- Dashboard and business metrics
+- Data requirements and analytics
+- Evidence used to demonstrate impact
+
+The strongest prototype connects the technical demo to a credible story about **merchant trust, financial risk, useful data and real-world adoption**.
+
+---
+
+## 🛠️ Technology Stack
+
+- **Mobile:** React Native, Expo Development Build, TypeScript/JavaScript, SQLite
+- **Backend:** Node.js, Express.js
+- **Server Database:** PostgreSQL
+- **Cloud:** Microsoft Azure
+- **Payments:** Open Payments, Interledger, Rafiki sandbox/test environment
+- **Low connectivity:** USSD/SMS gateway integration or simulation
+
+---
+
+## 🎬 Hackathon Demo Journey
+
+### 1. Register the merchant
 ```text
-pay2spaza/
-│
-├── mobile/
-│   ├── src/
-│   │   ├── screens/
-│   │   ├── components/
-│   │   ├── services/
-│   │   ├── database/
-│   │   ├── security/
-│   │   └── sync/
-│   └── app.json
-│
-├── backend/
-│   ├── src/
-│   │   ├── routes/
-│   │   ├── controllers/
-│   │   ├── services/
-│   │   ├── fraud/
-│   │   ├── payments/
-│   │   ├── open-payments/
-│   │   └── reconciliation/
-│   └── server.js
-│
-├── database/
-│   ├── migrations/
-│   └── schema.sql
-│
-├── docs/
-│   ├── architecture/
-│   ├── api/
-│   └── user-journeys/
-│
-├── tests/
-├── .env.example
-├── .gitignore
-├── package.json
-└── README.md
+Registration → Verification → Device Binding → Merchant Verified → QR Generated
+```
+
+### 2. Connected payment
+```text
+Scan QR → Verify Merchant → Add Basket → Confirm → Submit → CONFIRMED
+```
+
+### 3. Business dashboard updates
+```text
+Confirmed Payment
+      ↓
+Update Money In
+      ↓
+Update Monthly Trend
+      ↓
+Update Product Performance
+```
+
+### 4. Connectivity disappears
+```text
+Scan QR → Apply Offline Controls → Sign → Store Securely → LOCAL_PENDING
+```
+
+### 5. Connectivity returns
+```text
+Sync → Validate → Fraud / Replay Checks → Submit → CONFIRMED or REJECTED
+```
+
+### 6. Feature-phone journey
+```text
+Dial USSD → Merchant Code → Amount → Verify Merchant → Confirm → SMS Status
 ```
 
 ---
 
-## Hackathon Demo Journey
+## 🔮 Future Features
 
-### 1. Register the Spaza Shop
-
-```text
-Merchant Registration
-        ↓
-Identity Verification
-        ↓
-Device Binding
-        ↓
-Merchant Verified
-        ↓
-QR Generated
-```
-
-### 2. Customer Pays
-
-```text
-Open Camera
-     ↓
-Scan QR
-     ↓
-Verify Merchant
-     ↓
-Enter R50
-     ↓
-Confirm
-     ↓
-Open Payments
-     ↓
-Interledger
-     ↓
-CONFIRMED
-```
-
-### 3. Network Goes Down
-
-```text
-No Connectivity
-      ↓
-Customer Scans QR
-      ↓
-Transaction Signed
-      ↓
-Stored Locally
-      ↓
-PENDING
-```
-
-### 4. Connectivity Returns
-
-```text
-Network Restored
-      ↓
-Automatic Sync
-      ↓
-Fraud Checks
-      ↓
-Replay Check
-      ↓
-Payment Submitted
-      ↓
-CONFIRMED / REJECTED
-```
-
-### 5. Feature-Phone Customer
-
-```text
-Dial USSD
-    ↓
-Enter Merchant Code
-    ↓
-Enter Amount
-    ↓
-Verify Merchant
-    ↓
-Confirm
-    ↓
-Receive SMS Receipt
-```
+- PayShap integration
+- Request-to-Pay
+- NFC
+- Multiple wallet providers
+- Advanced merchant verification
+- Hardware-backed device keys
+- Advanced fraud analytics
+- Merchant inventory insights
+- Sales forecasting when sufficient quality data exists
+- Multi-bank integration
+- Cross-border Interledger use cases
 
 ---
 
-## Our Vision
+## 🚫 Not in the MVP
 
-Pay2Spaza is not trying to replace South Africa's banking infrastructure.
-
-We want to create an inclusive payment experience that connects people to existing and emerging open-payment infrastructure.
-
-> **One verified spaza payment identity. Multiple ways to pay. Built for the realities of Mzansi.**
-
-Whether a customer has:
-
-- A smartphone
-- A feature phone
-- Mobile data
-- Only cellular signalling
-- Temporarily no connectivity
-
-Pay2Spaza aims to provide the safest available payment experience for that situation.
-
----
-
-## Why Pay2Spaza?
-
-- **📷 Camera-first payments:** Simple QR payments using devices customers already own.
-- **📱 Financial inclusion:** Support for smartphone and feature-phone users.
-- **📴 Offline resilience:** Transactions can be securely recorded when connectivity disappears.
-- **🔗 Open Payments:** Open standards can connect Pay2Spaza to participating payment providers.
-- **🌍 Interledger:** Provides an interoperability story across different wallets and payment systems.
-- **🛡️ Merchant trust:** Verified merchant identities help customers know exactly who they are paying.
-- **🇿🇦 Built for Mzansi:** Designed around the realities of South African township and rural communities.
-
----
-
-## 👥 Team
-
-- **Project:** Pay2Spaza
-- **Challenge:** Open Payments Hackathon
-- **Focus:** Financial Inclusion • Offline-First Payments • Open Payments • Interledger • Spaza Economy
-- **Market:** South Africa 🇿🇦
-
----
-
-## References
-
-- [Open Payments](https://openpayments.dev/)
-- [Interledger Protocol](https://interledger.org/)
-- [Rafiki](https://rafiki.dev/)
-- South African Reserve Bank: Payments Ecosystem Modernisation
-- FinMark Trust: Township and informal-economy digital-payment research
+- Guaranteed real-money offline settlement
+- Production banking integration
+- Credit/lending
+- AI-controlled payment approval
+- Production biometric identity verification
+- Cross-border settlement
 
 ---
 
 ## ⚠️ Disclaimer
 
-Pay2Spaza is currently a hackathon prototype.
+Pay2Spaza is a **hackathon prototype**. It demonstrates payment initiation, offline transaction recording, synchronisation, risk controls, merchant analytics and Open Payments/Interledger concepts.
 
-The MVP demonstrates payment initiation, offline transaction recording, synchronisation, fraud controls, and Open Payments and Interledger concepts.
-
-It should not be interpreted as a production-ready banking, settlement, or offline stored-value system.
-
-Real-money deployment would require appropriate regulated payment partners, security testing, compliance processes, consumer-protection controls, and integration with authorised payment infrastructure.
+It is not a production-ready banking, settlement or offline stored-value system. Real deployment would require regulated payment partners, security testing, compliance and consumer-protection controls, agreed loss-allocation rules, and integration with authorised payment infrastructure.
 
 ---
 
