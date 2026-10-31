@@ -15,8 +15,10 @@ const developmentMerchants = [
   }
 ];
 
-function seedMerchants() {
-  developmentMerchants.forEach(saveMerchant);
+async function seedMerchants() {
+  for (const merchant of developmentMerchants) {
+    await saveMerchant(merchant);
+  }
 }
 
 function toApiMerchant(merchant) {
