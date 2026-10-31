@@ -39,7 +39,7 @@ function confirmed(transaction) {
   };
 }
 
-function validateTransaction(transaction, offlineCount) {
+async function validateTransaction(transaction, offlineCount) {
   if (!transaction || typeof transaction !== "object") {
     return "Invalid transaction";
   }
@@ -94,14 +94,14 @@ function validateTransaction(transaction, offlineCount) {
     return `Offline transaction limit of ${MAX_OFFLINE_TRANSACTIONS} reached`;
   }
 
-  if (!getMerchant(transaction.merchantId)) {
+  if (!(await getMerchant(transaction.merchantId))) {
     return "Merchant not found";
   }
 
   return null;
 }
 
-function processTransactions(transactions) {
+async function processTransactions(transactions) {
   if (!Array.isArray(transactions)) {
     return {
       results: [
@@ -115,7 +115,7 @@ function processTransactions(transactions) {
 
   for (const transaction of transactions) {
     const existing = transaction?.transactionId
-      ? getTransaction(transaction.transactionId)
+      ? await getTransaction(transaction.transactionId)
       : null;
 
     // Idempotent retry: return the original result for a known transaction.
@@ -128,14 +128,14 @@ function processTransactions(transactions) {
       continue;
     }
 
-    const validationError = validateTransaction(transaction, offlineCount);
+    const validationError = await validateTransaction(transaction, offlineCount);
 
     if (validationError) {
       results.push(rejected(transaction, validationError));
       continue;
     }
 
-    if (hasNonce(transaction.nonce)) {
+    if (await hasNonce(transaction.nonce)) {
       results.push(rejected(transaction, "Possible replay attack"));
       continue;
     }
@@ -150,7 +150,7 @@ function processTransactions(transactions) {
       syncedAt: new Date().toISOString()
     };
 
-    saveTransaction(storedTransaction);
+    await saveTransaction(storedTransaction);
     results.push(confirmed(storedTransaction));
   }
 

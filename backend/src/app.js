@@ -3,7 +3,8 @@ const cors = require("cors");
 
 const {
   getMerchant,
-  getMerchantTransactions
+  getMerchantTransactions,
+  isConnected
 } = require("./data/store");
 
 const {
@@ -17,7 +18,9 @@ const {
 
 const app = express();
 
-seedMerchants();
+seedMerchants().catch((error) => {
+  console.error("Failed to seed development merchants", error);
+});
 
 app.use(cors());
 app.use(express.json());
@@ -27,62 +30,75 @@ app.get("/health", (req, res) => {
     success: true,
     data: {
       service: "pay2spaza-backend",
-      status: "healthy"
+      status: "healthy",
+      database: isConnected() ? "connected" : "in-memory"
     },
     error: null
   });
 });
 
-app.get("/api/merchants/:id", (req, res) => {
-  const merchant = getMerchant(req.params.id.toUpperCase());
+app.get("/api/merchants/:id", async (req, res, next) => {
+  try {
+    const merchant = await getMerchant(req.params.id.toUpperCase());
 
-  if (!merchant) {
-    return res.status(404).json({
-      success: false,
-      data: null,
-      error: "Merchant not found"
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        error: "Merchant not found"
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: toApiMerchant(merchant),
+      error: null
     });
+  } catch (error) {
+    return next(error);
   }
-
-  return res.json({
-    success: true,
-    data: toApiMerchant(merchant),
-    error: null
-  });
 });
 
-app.get("/api/merchants/:id/transactions", (req, res) => {
-  const merchant = getMerchant(req.params.id.toUpperCase());
+app.get("/api/merchants/:id/transactions", async (req, res, next) => {
+  try {
+    const merchant = await getMerchant(req.params.id.toUpperCase());
 
-  if (!merchant) {
-    return res.status(404).json({
-      success: false,
-      data: null,
-      error: "Merchant not found"
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        error: "Merchant not found"
+      });
+    }
+
+    const transactions = await getMerchantTransactions(merchant.merchantId);
+
+    return res.json({
+      success: true,
+      data: {
+        merchant: toApiMerchant(merchant),
+        transactions
+      },
+      error: null
     });
+  } catch (error) {
+    return next(error);
   }
-
-  const transactions = getMerchantTransactions(merchant.merchantId);
-
-  return res.json({
-    success: true,
-    data: {
-      merchant: toApiMerchant(merchant),
-      transactions
-    },
-    error: null
-  });
 });
 
-app.post("/api/transactions/sync", (req, res) => {
-  const { transactions } = req.body || {};
-  const data = processTransactions(transactions);
+app.post("/api/transactions/sync", async (req, res, next) => {
+  try {
+    const { transactions } = req.body || {};
+    const data = await processTransactions(transactions);
 
-  return res.json({
-    success: true,
-    data,
-    error: null
-  });
+    return res.json({
+      success: true,
+      data,
+      error: null
+    });
+  } catch (error) {
+    return next(error);
+  }
 });
 
 app.use((req, res) => {
