@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { theme } from '../theme';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
+import { theme, topInset } from '../theme';
+import { F } from '../fonts';
 import { Strings } from '../i18n/strings';
 import { Merchant } from '../api/types';
-import { PrimaryButton } from '../components/PrimaryButton';
+import { PrimaryButton } from '../components/Buttons';
 import { pay } from '../services/pay';
 import { ResultInfo } from './ResultScreen';
 
-export function ConfirmScreen(p: { t: Strings; merchant: Merchant; online: boolean; onCancel: () => void; onDone: (r: ResultInfo) => void }) {
+export function ConfirmScreen(p: { t: Strings; merchant: Merchant; online: boolean; onBack: () => void; onDone: (r: ResultInfo) => void }) {
   const { t, merchant: m, online } = p;
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState('50');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const value = parseFloat(amount.replace(',', '.'));
@@ -19,55 +21,78 @@ export function ConfirmScreen(p: { t: Strings; merchant: Merchant; online: boole
     setBusy(true); setErr('');
     try {
       const r = await pay({ merchantId: m.id, amount: value, online, t });
-      p.onDone({ kind: r.kind, name: m.ownerFirstName, amount: value, reason: r.reason });
+      p.onDone({ kind: r.kind, shopName: m.name, name: m.ownerFirstName, amount: value, reference: r.transactionId, createdAt: r.createdAt, reason: r.reason, allowance: r.allowance });
     } catch (e: any) { setErr(e.message || t.failedBody); setBusy(false); }
   };
 
   return (
-    <View style={s.wrap}>
-      <View style={s.card}>
-        <View style={s.avatar}><Text style={s.avatarText}>{m.ownerFirstName[0]}</Text></View>
-        <Text style={s.name}>{m.name}</Text>
-        <Text style={s.badge}>{t.checkedBy(m.ownerFirstName)}</Text>
-        <Text style={s.label}>{t.howMuch}</Text>
-        <View style={s.amountRow}>
-          <Text style={s.rand}>R</Text>
-          <TextInput value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={theme.colors.line}
-            style={s.amount} accessibilityLabel={t.howMuch} autoFocus />
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={[s.content, { paddingTop: topInset + 12 }]} keyboardShouldPersistTaps="handled">
+        <View style={s.header}>
+          <Pressable onPress={p.onBack} accessibilityRole="button" accessibilityLabel="Back" style={s.back}>
+            <Svg width={24} height={24} viewBox="0 0 24 24"><Path d="M15 5 l-7 7 l7 7" stroke={theme.colors.ink} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>
+          </Pressable>
+          <Text style={s.headerTitle} accessibilityRole="header">{t.payAShop}</Text>
+          <View style={{ width: 46 }} />
         </View>
-        <View style={s.quick}>
-          {[10, 20, 50, 100].map(n => (
-            <Pressable key={n} onPress={() => setAmount(String(n))} style={s.chip} accessibilityRole="button" accessibilityLabel={`R${n}`}>
-              <Text style={s.chipText}>R{n}</Text>
-            </Pressable>
-          ))}
+
+        <View style={[theme.card, s.card]}>
+          <View style={s.avatar}><Text style={s.avatarText}>{m.ownerFirstName[0]}</Text></View>
+          <Text style={s.name}>{m.name}</Text>
+          <View style={s.badge}><Text style={s.badgeText}>{t.checkedBy(m.ownerFirstName)}</Text></View>
+          <Text style={s.label}>{t.howMuch}</Text>
+          <View style={s.amountRow}>
+            <Text style={s.amountText}>R</Text>
+            <TextInput value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={theme.colors.line}
+              style={s.amountInput} accessibilityLabel={t.howMuch} />
+          </View>
+          <View style={s.quick}>
+            {[10, 20, 50, 100].map(n => {
+              const sel = value === n;
+              return (
+                <Pressable key={n} onPress={() => setAmount(String(n))} accessibilityRole="button" accessibilityLabel={`R${n}`}
+                  style={[s.chip, sel && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}>
+                  <Text style={[s.chipText, sel && { color: '#FFFFFF' }]}>R{n}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
-      </View>
-      <Text style={[s.note, !online && s.noteOff]}>{online ? t.onlineNote(m.ownerFirstName) : t.offlineNote}</Text>
-      {!!err && <Text style={s.err} accessibilityLiveRegion="polite">{err}</Text>}
-      <View style={{ flex: 1 }} />
-      <PrimaryButton label={t.payBtn(m.ownerFirstName)} onPress={go} disabled={!valid || busy} />
-      <Pressable onPress={p.onCancel} style={s.cancel} accessibilityRole="button"><Text style={s.cancelText}>{t.cancel}</Text></Pressable>
-    </View>
+
+        <View style={[s.note, !online && { backgroundColor: theme.colors.pendingBg }]}>
+          <Text style={[s.noteText, !online && { color: theme.colors.pendingText }]}>{online ? t.onlineNote(m.ownerFirstName) : t.offlineNote}</Text>
+        </View>
+        {!!err && <Text style={s.err} accessibilityLiveRegion="polite">{err}</Text>}
+        <View style={{ flex: 1, minHeight: 24 }} />
+        <PrimaryButton label={t.payBtn(m.ownerFirstName)} onPress={go} disabled={!valid || busy} />
+        <Pressable onPress={p.onBack} accessibilityRole="button" style={s.cancel}><Text style={s.cancelText}>{t.cancel}</Text></Pressable>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
+
 const s = StyleSheet.create({
-  wrap: { flex: 1, padding: theme.space.lg, gap: 14 },
-  card: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.card, padding: 24, alignItems: 'center', gap: 8 },
-  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 32, fontWeight: '800', color: theme.colors.onAccent },
-  name: { fontSize: 24, fontWeight: '800', color: theme.colors.ink },
-  badge: { fontSize: 13, color: theme.colors.successText, backgroundColor: theme.colors.successBg, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 99, overflow: 'hidden', fontWeight: '700' },
-  label: { marginTop: 12, fontSize: theme.font.small, color: theme.colors.muted },
-  amountRow: { flexDirection: 'row', alignItems: 'center' },
-  rand: { fontSize: 40, fontWeight: '800', color: theme.colors.muted, marginRight: 6 },
-  amount: { fontSize: theme.font.amount, fontWeight: '800', color: theme.colors.ink, minWidth: 90, textAlign: 'left' },
-  quick: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  chip: { minHeight: 44, minWidth: 60, paddingHorizontal: 14, borderRadius: 22, backgroundColor: theme.colors.bg, borderWidth: 2, borderColor: theme.colors.line, alignItems: 'center', justifyContent: 'center' },
-  chipText: { fontWeight: '800', color: theme.colors.ink },
-  note: { fontSize: theme.font.small, color: theme.colors.successText, backgroundColor: theme.colors.successBg, padding: 12, borderRadius: 14, overflow: 'hidden' },
-  noteOff: { color: theme.colors.pendingText, backgroundColor: theme.colors.pendingBg },
-  err: { color: theme.colors.errorText, backgroundColor: theme.colors.errorBg, padding: 12, borderRadius: 14, fontSize: theme.font.small, overflow: 'hidden' },
-  cancel: { minHeight: theme.touchMin, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: theme.colors.muted, fontSize: theme.font.body, fontWeight: '700' },
+  root: { flex: 1, backgroundColor: theme.colors.bg },
+  content: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 24, gap: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  back: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontFamily: F.black, fontSize: 17, color: theme.colors.ink },
+  card: { alignItems: 'center', padding: 24, paddingBottom: 28 },
+  avatar: { width: 76, height: 76, borderRadius: 38, backgroundColor: theme.colors.gold, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontFamily: F.black, fontSize: 40, color: theme.colors.ink },
+  name: { fontFamily: F.black, fontSize: 24, color: theme.colors.ink, marginTop: 10 },
+  badge: { alignSelf: 'stretch', height: 30, borderRadius: 15, backgroundColor: theme.colors.okBg, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+  badgeText: { fontFamily: F.black, fontSize: 12, color: theme.colors.okText },
+  label: { fontFamily: F.semi, fontSize: 15, color: theme.colors.muted, marginTop: 22 },
+  amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  amountText: { fontFamily: F.black, fontSize: 64, color: theme.colors.ink },
+  amountInput: { fontFamily: F.black, fontSize: 64, color: theme.colors.ink, minWidth: 70, padding: 0 },
+  quick: { flexDirection: 'row', gap: 6, marginTop: 8 },
+  chip: { minWidth: 66, height: 44, paddingHorizontal: 10, borderRadius: 22, backgroundColor: theme.colors.bg, borderWidth: 2, borderColor: theme.colors.line, alignItems: 'center', justifyContent: 'center' },
+  chipText: { fontFamily: F.black, fontSize: 15, color: theme.colors.ink },
+  note: { minHeight: 52, borderRadius: 16, backgroundColor: theme.colors.okBg, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 10 },
+  noteText: { fontFamily: F.bold, fontSize: 14, color: theme.colors.okText },
+  err: { fontFamily: F.semi, fontSize: 14, color: theme.colors.errorText, backgroundColor: theme.colors.errorBg, padding: 12, borderRadius: 14, overflow: 'hidden' },
+  cancel: { minHeight: 52, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { fontFamily: F.bold, fontSize: 16, color: theme.colors.muted },
 });
