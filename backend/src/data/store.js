@@ -1,129 +1,122 @@
-const { MongoClient } = require("mongodb");
+const mongoose = require("mongoose");
 
 const merchants = new Map();
 const transactions = new Map();
 const usedNonces = new Set();
-let client;
-let database;
 
-async function connectStore(uri, databaseName = process.env.MONGODB_DATABASE || "pay2spaza") {
-  if (!uri) {
-    return false;
-  }
+const merchantSchema = new mongoose.Schema(
+  {
+    merchantId: { type: String, required: true, unique: true },
+    id: String,
+    name: String,
+    ownerFirstName: String
+  },
+  { timestamps: true }
+);
 
-  client = new MongoClient(uri);
-  await client.connect();
-  database = client.db(databaseName);
-  await database.collection("merchants").createIndex({ merchantId: 1 }, { unique: true });
-  await database.collection("transactions").createIndex({ transactionId: 1 }, { unique: true });
-  await database.collection("transactions").createIndex({ nonce: 1 }, { unique: true });
+const transactionSchema = new mongoose.Schema(
+  {
+    transactionId: { type: String, required: true, unique: true },
+    merchantId: { type: String, required: true },
+    nonce: { type: String, required: true, unique: true }
+  },
+  { strict: false, timestamps: true }
+);
 
-  const storedMerchants = await database.collection("merchants").find({}).toArray();
-  storedMerchants.forEach((merchant) => merchants.set(merchant.merchantId, merchant));
+const Merchant = mongoose.models.Merchant || mongoose.model("Merchant", merchantSchema);
+const Transaction = mongoose.models.Transaction || mongoose.model("Transaction", transactionSchema);
 
-  const storedTransactions = await database.collection("transactions").find({}).toArray();
-  storedTransactions.forEach((transaction) => {
-    transactions.set(transaction.transactionId, transaction);
-    usedNonces.add(transaction.nonce);
-  });
+async function connectStore(uri, databaseName) {
+  try {
+    await mongoose.connect(uri, databaseName ? { dbName: databaseName } : undefined);
 
-  return true;
-}
-
-async function closeStore() {
-  if (client) {
-    await client.close();
-    client = undefined;
-    database = undefined;
+    console.log("MongoDB connection established");
+  } catch (error) {
+    console.error("MongoDB connection failed:", error);
+    throw error;
   }
 }
 
 function isConnected() {
-  return Boolean(database);
+  return mongoose.connection.readyState === 1;
 }
 
 async function saveMerchant(merchant) {
-  merchants.set(merchant.merchantId, merchant);
-  if (database) {
-    await database.collection("merchants").replaceOne(
-      { merchantId: merchant.merchantId },
-      merchant,
-      { upsert: true }
-    );
+  const merchantId = merchant.merchantId || merchant.id;
+  merchants.set(merchantId, { ...merchant, merchantId });
+
+  if (isConnected()) {
+    return Merchant.findOneAndUpdate(
+      { merchantId },
+      { ...merchant, merchantId },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
   }
-  return merchant;
+
+  return merchants.get(merchantId);
 }
 
 async function getMerchant(merchantId) {
-  const cached = merchants.get(merchantId);
-  if (cached || !database) {
-    return cached;
+  if (isConnected()) {
+    return Merchant.findOne({
+      $or: [{ merchantId }, { id: merchantId }]
+    }).lean();
   }
 
-  const merchant = await database.collection("merchants").findOne({ merchantId });
-  if (merchant) {
-    merchants.set(merchantId, merchant);
-  }
-  return merchant;
+  return merchants.get(merchantId) || null;
 }
 
 async function saveTransaction(transaction) {
   transactions.set(transaction.transactionId, transaction);
   usedNonces.add(transaction.nonce);
-  if (database) {
-    await database.collection("transactions").insertOne(transaction);
+
+  if (isConnected()) {
+    return Transaction.findOneAndUpdate(
+      { transactionId: transaction.transactionId },
+      transaction,
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
   }
+
   return transaction;
 }
 
 async function getTransaction(transactionId) {
-  const cached = transactions.get(transactionId);
-  if (cached || !database) {
-    return cached;
+  if (isConnected()) {
+    return Transaction.findOne({ transactionId }).lean();
   }
 
-  const transaction = await database.collection("transactions").findOne({ transactionId });
-  if (transaction) {
-    transactions.set(transactionId, transaction);
-    usedNonces.add(transaction.nonce);
-  }
-  return transaction;
-}
-
-async function getMerchantTransactions(merchantId) {
-  if (!database) {
-    return Array.from(transactions.values()).filter(
-      (transaction) => transaction.merchantId === merchantId
-    );
-  }
-
-  return database.collection("transactions").find({ merchantId }).toArray();
-}
-
-function hasTransaction(transactionId) {
-  return transactions.has(transactionId);
+  return transactions.get(transactionId) || null;
 }
 
 async function hasNonce(nonce) {
-  if (usedNonces.has(nonce) || !database) {
-    return usedNonces.has(nonce);
+  if (isConnected()) {
+    return Boolean(await Transaction.exists({ nonce }));
   }
 
-  return Boolean(await database.collection("transactions").findOne({ nonce }));
+  return usedNonces.has(nonce);
+}
+
+async function getMerchantTransactions(merchantId) {
+  if (isConnected()) {
+    return Transaction.find({ merchantId }).sort({ createdAt: -1 }).lean();
+  }
+
+  return [...transactions.values()].filter(
+    (transaction) => transaction.merchantId === merchantId
+  );
 }
 
 module.exports = {
+  connectStore,
+  getMerchant,
+  getMerchantTransactions,
+  getTransaction,
+  hasNonce,
+  isConnected,
   merchants,
+  saveMerchant,
+  saveTransaction,
   transactions,
   usedNonces,
-  saveMerchant,
-  getMerchant,
-  saveTransaction,
-  getTransaction,
-  getMerchantTransactions,
-  hasTransaction,
-  hasNonce,
-  connectStore,
-  closeStore,
-  isConnected
 };

@@ -3,18 +3,19 @@ const cors = require("cors");
 
 const {
   getMerchant,
-  getMerchantTransactions,
   isConnected
 } = require("./data/store");
 
 const {
   seedMerchants,
-  toApiMerchant
 } = require("./data/merchants");
 
 const {
-  processTransactions
-} = require("./services/transactionService");
+  listMerchantTransactions,
+  lookupMerchant
+} = require("./controllers/merchantController");
+
+const { syncTransactions } = require("./controllers/transactionController");
 
 const app = express();
 
@@ -38,67 +39,15 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/api/merchants/:id", async (req, res, next) => {
-  try {
-    const merchant = await getMerchant(req.params.id.toUpperCase());
-
-    if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        data: null,
-        error: "Merchant not found"
-      });
-    }
-
-    return res.json({
-      success: true,
-      data: toApiMerchant(merchant),
-      error: null
-    });
-  } catch (error) {
-    return next(error);
-  }
+  return lookupMerchant(req, res, next);
 });
 
 app.get("/api/merchants/:id/transactions", async (req, res, next) => {
-  try {
-    const merchant = await getMerchant(req.params.id.toUpperCase());
-
-    if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        data: null,
-        error: "Merchant not found"
-      });
-    }
-
-    const transactions = await getMerchantTransactions(merchant.merchantId);
-
-    return res.json({
-      success: true,
-      data: {
-        merchant: toApiMerchant(merchant),
-        transactions
-      },
-      error: null
-    });
-  } catch (error) {
-    return next(error);
-  }
+  return listMerchantTransactions(req, res, next);
 });
 
 app.post("/api/transactions/sync", async (req, res, next) => {
-  try {
-    const { transactions } = req.body || {};
-    const data = await processTransactions(transactions);
-
-    return res.json({
-      success: true,
-      data,
-      error: null
-    });
-  } catch (error) {
-    return next(error);
-  }
+  return syncTransactions(req, res, next);
 });
 
 app.use((req, res) => {

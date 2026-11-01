@@ -9,14 +9,22 @@
     "test": "jest --runInBand"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.0",
-    "mongodb": "^6.21.0"
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.3",
+    "mongodb": "^6.21.0",
+    "mongoose": "^9.11.4"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "nodemon": "^3.1.7",
+    "nodemon": "^3.1.14",
     "supertest": "^7.0.0"
-  }
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
 }
