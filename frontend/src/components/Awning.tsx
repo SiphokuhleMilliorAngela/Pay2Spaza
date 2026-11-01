@@ -1,13 +1,14 @@
-import { View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { theme } from '../theme';
 
-// Scalloped shop awning. Decorative.
-export function Awning({ count = 8 }: { count?: number }) {
+// Scalloped awning across the top of the shop owner screen (gold and teal).
+export function Awning() {
+  const n = 8, w = 390 / n;
   return (
-    <View style={{ flexDirection: 'row', height: 22 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      {Array.from({ length: count }).map((_, i) => (
-        <View key={i} style={{ flex: 1, backgroundColor: i % 2 ? theme.colors.primary : theme.colors.accent, borderBottomLeftRadius: 22, borderBottomRightRadius: 22 }} />
+    <Svg width="100%" height={38} viewBox="0 0 390 38" preserveAspectRatio="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {Array.from({ length: n }).map((_, i) => (
+        <Path key={i} d={`M${i * w} 0 H${(i + 1) * w} V14 A${w / 2} ${w / 2} 0 0 1 ${i * w} 14 Z`} fill={i % 2 === 0 ? theme.colors.gold : theme.colors.primary} />
       ))}
-    </View>
+    </Svg>
   );
 }
