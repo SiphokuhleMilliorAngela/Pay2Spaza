@@ -25,7 +25,7 @@ function Paid({ t, r, onDone }: { t: Strings; r: ResultInfo; onDone: () => void 
   return (
     <View style={[s.root, { backgroundColor: ok ? theme.colors.primary : theme.colors.danger, paddingTop: topInset + 90 }]}>
       <View style={s.circle}>
-        <Svg width={64} height={64} viewBox="0 0 64 64">
+        <Svg pointerEvents="none" width={64} height={64} viewBox="0 0 64 64">
           {ok
             ? <Path d="M16 34 l11 11 l22 -25" stroke={theme.colors.primary} strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
             : <Path d="M18 18 L46 46 M46 18 L18 46" stroke={theme.colors.danger} strokeWidth={8} strokeLinecap="round" fill="none" />}
@@ -56,7 +56,7 @@ function SavedOffline({ t, r, onDone }: { t: Strings; r: ResultInfo; onDone: () 
         <StatusChip kind="pending" label={t.offlineChip} minWidth={92} />
       </View>
       <View style={[s.circle, s.clock]}>
-        <Svg width={124} height={124} viewBox="0 0 124 124">
+        <Svg pointerEvents="none" width={124} height={124} viewBox="0 0 124 124">
           <Circle cx={62} cy={62} r={26} stroke={theme.colors.ink} strokeWidth={5} fill="none" />
           <Path d="M62 46 V62 L73 70" stroke={theme.colors.ink} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
         </Svg>

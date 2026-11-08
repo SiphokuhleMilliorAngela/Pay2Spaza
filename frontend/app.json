@@ -11,8 +11,7 @@
           "cameraPermission": "Pay2Spaza uses the camera to scan shop QR codes."
         }
       ],
-      "expo-sqlite",
-      "expo-asset"
+      "expo-sqlite"
     ]
   }
 }
