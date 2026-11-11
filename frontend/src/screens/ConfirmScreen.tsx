@@ -30,7 +30,7 @@ export function ConfirmScreen(p: { t: Strings; merchant: Merchant; online: boole
       <ScrollView contentContainerStyle={[s.content, { paddingTop: topInset + 12 }]} keyboardShouldPersistTaps="handled">
         <View style={s.header}>
           <Pressable onPress={p.onBack} accessibilityRole="button" accessibilityLabel="Back" style={s.back}>
-            <Svg width={24} height={24} viewBox="0 0 24 24"><Path d="M15 5 l-7 7 l7 7" stroke={theme.colors.ink} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>
+            <Svg pointerEvents="none" width={24} height={24} viewBox="0 0 24 24"><Path d="M15 5 l-7 7 l7 7" stroke={theme.colors.ink} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>
           </Pressable>
           <Text style={s.headerTitle} accessibilityRole="header">{t.payAShop}</Text>
           <View style={{ width: 46 }} />

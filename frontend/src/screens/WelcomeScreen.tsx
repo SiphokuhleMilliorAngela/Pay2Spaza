@@ -15,13 +15,13 @@ export function WelcomeScreen({ t, language, onLanguage, onContinue }: {
   const { width } = useWindowDimensions();
   return (
     <ScrollView style={{ flex: 1, backgroundColor: H.bg }} contentContainerStyle={s.content} bounces={false}>
-      <Svg width={width} height={(width * 280) / 390} viewBox="0 0 390 280" style={{ marginTop: topInset - 20 }}
+      <Svg pointerEvents="none" width={width} height={(width * 280) / 390} viewBox="0 0 390 280" style={{ marginTop: topInset - 20 }}
         accessibilityLabel="Drawing of a spaza shop">
         <ShopIllustration />
       </Svg>
       <View style={s.pad}>
         <Text style={s.title} accessibilityRole="header">{t.welcomeTitle}</Text>
-        <Svg width={224} height={16} viewBox={`0 0 ${WAVE_VB[0]} ${WAVE_VB[1]}`} style={{ marginTop: -10 }}>
+        <Svg pointerEvents="none" width={224} height={16} viewBox={`0 0 ${WAVE_VB[0]} ${WAVE_VB[1]}`} style={{ marginTop: -10 }}>
           <Path d={WAVE_PATH} stroke={H.brick} strokeWidth={5} strokeLinecap="round" fill="none" />
         </Svg>
         <Text style={s.hello}>{t.welcomeHello}</Text>
@@ -37,7 +37,7 @@ export function WelcomeScreen({ t, language, onLanguage, onContinue }: {
                 <RoughShape path={TAG_PATHS[i]} vb={TAG_VB} fill="#FFFFFF" stroke={sel ? H.teal : H.ink} strokeWidth={sel ? 3.5 : 3} style={s.tag}>
                   <Text style={[s.tagText, { color: sel ? H.teal : H.ink }]}>{l}</Text>
                   {sel && (
-                    <Svg width={24} height={24} viewBox="0 0 24 24" style={s.tick}>
+                    <Svg pointerEvents="none" width={24} height={24} viewBox="0 0 24 24" style={s.tick}>
                       <Circle cx={12} cy={12} r={11} fill={H.teal} />
                       <Path d="M6.5 12.5 l4 4 l8 -9" stroke="#FFFFFF" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" />
                     </Svg>

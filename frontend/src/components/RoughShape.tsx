@@ -9,7 +9,7 @@ export function RoughShape({ path, vb, fill, stroke, strokeWidth = 3, style, chi
 }) {
   return (
     <View style={style}>
-      <Svg style={StyleSheet.absoluteFill} viewBox={`0 0 ${vb[0]} ${vb[1]}`} preserveAspectRatio="none">
+      <Svg pointerEvents="none" style={StyleSheet.absoluteFill} viewBox={`0 0 ${vb[0]} ${vb[1]}`} preserveAspectRatio="none">
         <Path d={path} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" />
       </Svg>
       {children}

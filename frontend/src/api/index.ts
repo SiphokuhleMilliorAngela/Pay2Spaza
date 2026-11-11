@@ -1,6 +1,6 @@
  import { mockApi } from './mock';
 import { Merchant, SyncResult } from './types';
-import { Tx } from '../database/db';
+import { cacheMerchant, getCachedMerchant, Tx } from '../database/db';
 
 // Local development backend.
 export const USE_MOCK = false;
@@ -16,9 +16,10 @@ async function call<T>(path: string, init?: RequestInit): Promise<T | null> {
 }
 
 const realApi = {
-  lookupMerchant: (id: string) => call<Merchant>(`/api/merchants/${encodeURIComponent(id)}`),
-  submitTransactions: async (list: Tx[]): Promise<SyncResult[]> =>
-    (await call<{ results: SyncResult[] }>('/api/transactions/sync', { method: 'POST', body: JSON.stringify({ transactions: list }) }))?.results ?? [],
-};
+  lookupMerchant: async (id: string): Promise<Merchant | null> => {
+  const m = await call<Merchant>(`/api/merchants/${encodeURIComponent(id)}`);
+  if (m) { cacheMerchant(m).catch(() => {}); return m; }
+  return getCachedMerchant(id); // offline or unreachable: use the saved copy
+},
 
 export const api = USE_MOCK ? mockApi : realApi;
