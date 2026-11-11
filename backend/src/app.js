@@ -16,6 +16,7 @@ const {
 } = require("./controllers/merchantController");
 
 const { syncTransactions } = require("./controllers/transactionController");
+const { confirmOtp, requestOtp } = require("./controllers/otpController");
 
 const app = express();
 
@@ -25,6 +26,14 @@ seedMerchants().catch((error) => {
 
 app.use(cors());
 app.use(express.json());
+
+app.post("/api/auth/otp/request", async (req, res, next) => {
+  return requestOtp(req, res, next);
+});
+
+app.post("/api/auth/otp/verify", async (req, res, next) => {
+  return confirmOtp(req, res, next);
+});
 
 app.get("/health", (req, res) => {
   res.json({
@@ -64,6 +73,14 @@ app.use((error, req, res, next) => {
       success: false,
       data: null,
       error: "Malformed JSON request"
+    });
+  }
+
+  if (error.status === 400) {
+    return res.status(400).json({
+      success: false,
+      data: null,
+      error: error.message
     });
   }
 
