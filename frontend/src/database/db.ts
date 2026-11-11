@@ -1,5 +1,4 @@
 import { Platform } from 'react-native';
-import * as SQLite from 'expo-sqlite';
 
 export type Tx = {
   transactionId: string;
@@ -17,13 +16,12 @@ export type Tx = {
   status: 'LOCAL_PENDING' | 'SUBMITTED' | 'CONFIRMED' | 'REJECTED' | 'EXPIRED';
 };
 
-// Simple web-in-memory array storage fallback to mimic database rows
+// In-memory array storage fallback to hold data on the web
 let webDbMemory: any[] = [];
-
 let db: any = null;
 
 export async function getDb() {
-  // 1. SAFELY BYPASS SQLITE ON WEB PLATFORMS
+  // 1. If running on Web, immediately return a safe mock object
   if (Platform.OS === 'web') {
     return {
       runAsync: async () => {},
@@ -32,8 +30,9 @@ export async function getDb() {
     };
   }
 
-  // 2. NATIVE MOBILE APP FLOW (iOS / Android)
+  // 2. Only import expo-sqlite dynamically on native devices (iOS/Android)
   if (!db) {
+    const SQLite = require('expo-sqlite');
     db = await SQLite.openDatabaseAsync('pay2spaza.db');
     await db.execAsync(`CREATE TABLE IF NOT EXISTS tx (
       transactionId TEXT PRIMARY KEY, merchantId TEXT, customerId TEXT, deviceId TEXT,
@@ -45,7 +44,6 @@ export async function getDb() {
 
 export async function saveTx(t: Tx) {
   if (Platform.OS === 'web') {
-    // Web fallback: Save to local memory array so app works interactively 
     webDbMemory.push({ ...t, offline: t.offline ? 1 : 0 });
     return;
   }
@@ -60,7 +58,6 @@ export async function saveTx(t: Tx) {
 
 export async function getPending(): Promise<Tx[]> {
   if (Platform.OS === 'web') {
-    // Web fallback filter
     return webDbMemory
       .filter(r => r.status === 'LOCAL_PENDING')
       .map(r => ({ ...r, offline: !r.offline }));
@@ -73,7 +70,6 @@ export async function getPending(): Promise<Tx[]> {
 
 export async function setStatus(id: string, status: Tx['status']) {
   if (Platform.OS === 'web') {
-    // Web fallback update
     const target = webDbMemory.find(r => r.transactionId === id);
     if (target) target.status = status;
     return;
@@ -85,7 +81,6 @@ export async function setStatus(id: string, status: Tx['status']) {
 
 export async function history(): Promise<Tx[]> {
   if (Platform.OS === 'web') {
-    // Web fallback list sorting
     return [...webDbMemory]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .map(r => ({ ...r, offline: !r.offline }));
