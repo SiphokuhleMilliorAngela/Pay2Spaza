@@ -1,49 +1,122 @@
+const mongoose = require("mongoose");
+
 const merchants = new Map();
 const transactions = new Map();
 const usedNonces = new Set();
 
-function saveMerchant(merchant) {
-  merchants.set(merchant.merchantId, merchant);
-  return merchant;
+const merchantSchema = new mongoose.Schema(
+  {
+    merchantId: { type: String, required: true, unique: true },
+    id: String,
+    name: String,
+    ownerFirstName: String
+  },
+  { timestamps: true }
+);
+
+const transactionSchema = new mongoose.Schema(
+  {
+    transactionId: { type: String, required: true, unique: true },
+    merchantId: { type: String, required: true },
+    nonce: { type: String, required: true, unique: true }
+  },
+  { strict: false, timestamps: true }
+);
+
+const Merchant = mongoose.models.Merchant || mongoose.model("Merchant", merchantSchema);
+const Transaction = mongoose.models.Transaction || mongoose.model("Transaction", transactionSchema);
+
+async function connectStore(uri, databaseName) {
+  try {
+    await mongoose.connect(uri, databaseName ? { dbName: databaseName } : undefined);
+
+    console.log("MongoDB connection established");
+  } catch (error) {
+    console.error("MongoDB connection failed:", error);
+    throw error;
+  }
 }
 
-function getMerchant(merchantId) {
+function isConnected() {
+  return mongoose.connection.readyState === 1;
+}
+
+async function saveMerchant(merchant) {
+  const merchantId = merchant.merchantId || merchant.id;
+  merchants.set(merchantId, { ...merchant, merchantId });
+
+  if (isConnected()) {
+    return Merchant.findOneAndUpdate(
+      { merchantId },
+      { ...merchant, merchantId },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
+  }
+
   return merchants.get(merchantId);
 }
 
-function saveTransaction(transaction) {
+async function getMerchant(merchantId) {
+  if (isConnected()) {
+    return Merchant.findOne({
+      $or: [{ merchantId }, { id: merchantId }]
+    }).lean();
+  }
+
+  return merchants.get(merchantId) || null;
+}
+
+async function saveTransaction(transaction) {
   transactions.set(transaction.transactionId, transaction);
   usedNonces.add(transaction.nonce);
+
+  if (isConnected()) {
+    return Transaction.findOneAndUpdate(
+      { transactionId: transaction.transactionId },
+      transaction,
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
+  }
+
   return transaction;
 }
 
-function getTransaction(transactionId) {
-  return transactions.get(transactionId);
+async function getTransaction(transactionId) {
+  if (isConnected()) {
+    return Transaction.findOne({ transactionId }).lean();
+  }
+
+  return transactions.get(transactionId) || null;
 }
 
-function getMerchantTransactions(merchantId) {
-  return Array.from(transactions.values()).filter(
+async function hasNonce(nonce) {
+  if (isConnected()) {
+    return Boolean(await Transaction.exists({ nonce }));
+  }
+
+  return usedNonces.has(nonce);
+}
+
+async function getMerchantTransactions(merchantId) {
+  if (isConnected()) {
+    return Transaction.find({ merchantId }).sort({ createdAt: -1 }).lean();
+  }
+
+  return [...transactions.values()].filter(
     (transaction) => transaction.merchantId === merchantId
   );
 }
 
-function hasTransaction(transactionId) {
-  return transactions.has(transactionId);
-}
-
-function hasNonce(nonce) {
-  return usedNonces.has(nonce);
-}
-
 module.exports = {
+  connectStore,
+  getMerchant,
+  getMerchantTransactions,
+  getTransaction,
+  hasNonce,
+  isConnected,
   merchants,
+  saveMerchant,
+  saveTransaction,
   transactions,
   usedNonces,
-  saveMerchant,
-  getMerchant,
-  saveTransaction,
-  getTransaction,
-  getMerchantTransactions,
-  hasTransaction,
-  hasNonce
 };
