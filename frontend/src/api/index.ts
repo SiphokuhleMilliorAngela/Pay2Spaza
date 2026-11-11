@@ -1,4 +1,4 @@
-import { mockApi } from './mock';
+ import { mockApi } from './mock';
 import { Merchant, SyncResult } from './types';
 import { Tx } from '../database/db';
 
