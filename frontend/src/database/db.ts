@@ -1,12 +1,8 @@
 import * as SQLite from 'expo-sqlite';
 import type { Merchant } from '../api/types';
 
-export type Tx = {
-  transactionId: string; merchantId: string; customerId: string; deviceId: string;
-  amount: number; currency: string; channel: 'QR' | 'USSD'; nonce: string;
-  offline: boolean; createdAt: string; signature: string; publicKey: string;
-  status: 'LOCAL_PENDING' | 'SUBMITTED' | 'CONFIRMED' | 'REJECTED' | 'EXPIRED';
-};
+import type { Tx } from './types';
+export type { Tx } from './types';
 
 let db: SQLite.SQLiteDatabase;
 export async function getDb() {
