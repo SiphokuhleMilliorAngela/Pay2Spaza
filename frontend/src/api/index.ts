@@ -1,4 +1,4 @@
- import { mockApi } from './mock';
+import { mockApi } from './mock';
 import { Merchant, SyncResult } from './types';
 import { cacheMerchant, getCachedMerchant, Tx } from '../database/db';
 
@@ -17,9 +17,18 @@ async function call<T>(path: string, init?: RequestInit): Promise<T | null> {
 
 const realApi = {
   lookupMerchant: async (id: string): Promise<Merchant | null> => {
-  const m = await call<Merchant>(`/api/merchants/${encodeURIComponent(id)}`);
-  if (m) { cacheMerchant(m).catch(() => {}); return m; }
-  return getCachedMerchant(id); // offline or unreachable: use the saved copy
-},
+    const m = await call<Merchant>(`api/merchants/${encodeURIComponent(id)}`);
+    if (m) { cacheMerchant(m).catch(() => {}); return m; }
+    return getCachedMerchant(id); // offline or unreachable: use the saved copy
+  },
+  // Empty array when the server is unreachable, so the transactions stay queued.
+  submitTransactions: async (list: Tx[]): Promise<SyncResult[]> => {
+    const results = await call<SyncResult[]>('api/transactions/sync', {
+      method: 'POST',
+      body: JSON.stringify({ transactions: list }),
+    });
+    return Array.isArray(results) ? results : [];
+  },
+};
 
 export const api = USE_MOCK ? mockApi : realApi;
