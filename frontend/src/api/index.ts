@@ -4,7 +4,7 @@ import { Tx } from '../database/db';
 
 // Local development backend.
 export const USE_MOCK = false;
-const BASE_URL = 'http://10.0.0.4:3000';
+const BASE_URL = 'https://pay2spaza.onrender.com/';
 
 // ASSUMED CONTRACT (agree with backend): responses look like { success, data, error }.
 async function call<T>(path: string, init?: RequestInit): Promise<T | null> {
