@@ -24,9 +24,51 @@ function makeTransaction(overrides = {}) {
 beforeEach(() => {
   store.transactions.clear();
   store.usedNonces.clear();
+  store.otpChallenges.clear();
 });
 
 describe("Pay2Spaza backend", () => {
+  test("generates and verifies a one-time OTP", async () => {
+    const requestResponse = await request(app)
+      .post("/api/auth/otp/request")
+      .send({ identifier: "user@example.com" })
+      .expect(201);
+
+    expect(requestResponse.body.data.otp).toMatch(/^\d{6}$/);
+
+    await request(app)
+      .post("/api/auth/otp/verify")
+      .send({
+        identifier: "USER@EXAMPLE.COM",
+        code: requestResponse.body.data.otp
+      })
+      .expect(200);
+
+    const replayResponse = await request(app)
+      .post("/api/auth/otp/verify")
+      .send({
+        identifier: "user@example.com",
+        code: requestResponse.body.data.otp
+      })
+      .expect(400);
+
+    expect(replayResponse.body.error).toBe("OTP is invalid or has expired");
+  });
+
+  test("rejects an incorrect OTP", async () => {
+    await request(app)
+      .post("/api/auth/otp/request")
+      .send({ identifier: "+27820000000" })
+      .expect(201);
+
+    const response = await request(app)
+      .post("/api/auth/otp/verify")
+      .send({ identifier: "+27820000000", code: "000000" })
+      .expect(400);
+
+    expect(response.body.error).toBe("Invalid OTP");
+  });
+
   test("GET /health returns a healthy response", async () => {
     const response = await request(app)
       .get("/health")
