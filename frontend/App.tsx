@@ -5,16 +5,22 @@ import { useAppFonts } from './src/fonts';
 import { theme } from './src/theme';
 import { strings } from './src/i18n/strings';
 import { api } from './src/api';
-import { Merchant } from './src/api/types';
+import { Merchant, OtpChallenge } from './src/api/types';
+import { REQUIRE_OTP } from './src/config';
+import { clearVerifiedPhone, getVerifiedPhone } from './src/services/auth';
 import { syncPending } from './src/sync/sync';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
+import { PhoneScreen } from './src/screens/PhoneScreen';
+import { OtpScreen } from './src/screens/OtpScreen';
 import { ScanScreen } from './src/screens/ScanScreen';
 import { ConfirmScreen } from './src/screens/ConfirmScreen';
 import { ResultScreen, ResultInfo } from './src/screens/ResultScreen';
+import { UssdScreen } from './src/screens/UssdScreen';
+import { UssdSimulatorScreen } from './src/screens/UssdSimulatorScreen';
 import { MerchantHomeScreen } from './src/screens/MerchantHomeScreen';
 import { F } from './src/fonts';
 
-type Step = 'welcome' | 'scan' | 'confirm' | 'result' | 'shop';
+type Step = 'welcome' | 'phone' | 'otp' | 'scan' | 'confirm' | 'result' | 'shop' | 'ussd' | 'ussdTry';
 
 export default function App() {
   const fontsLoaded = useAppFonts();
@@ -29,8 +35,11 @@ export default function App() {
   const [shop, setShop] = useState<Merchant | null>(null);
   const [tick, setTick] = useState(0);
   const [tools, setTools] = useState(false);
+  const [verifiedPhone, setVerifiedPhoneState] = useState<string | null>(null); // number that passed the SMS code check
+  const [pending, setPending] = useState<{ identifier: string; challenge: OtpChallenge } | null>(null);
 
   useEffect(() => { api.lookupMerchant('SPZ12345').then(setShop); }, []);
+  useEffect(() => { getVerifiedPhone().then(setVerifiedPhoneState); }, []);
   useEffect(() => { if (online) syncPending(true).then(() => setTick(x => x + 1)).catch(() => {}); }, [online]);
 
   if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: theme.colors.bg }} />;
@@ -39,10 +48,15 @@ export default function App() {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar barStyle={step === 'scan' ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
-      {step === 'welcome' && <WelcomeScreen t={t} language={language} onLanguage={setLanguage} onContinue={() => setStep('scan')} />}
+      {step === 'welcome' && <WelcomeScreen t={t} language={language} onLanguage={setLanguage} onContinue={() => setStep(!REQUIRE_OTP || verifiedPhone ? 'scan' : 'phone')} />}
+      {step === 'phone' && <PhoneScreen t={t} online={online} onBack={() => setStep('welcome')} onSent={(identifier, challenge) => { setPending({ identifier, challenge }); setStep('otp'); }} />}
+      {step === 'otp' && pending && <OtpScreen t={t} online={online} identifier={pending.identifier} challenge={pending.challenge} onBack={() => setStep('phone')}
+        onChallenge={c => setPending({ identifier: pending.identifier, challenge: c })} onVerified={() => { setVerifiedPhoneState(pending.identifier); setStep('scan'); }} />}
       {step === 'scan' && <ScanScreen t={t} online={online} onMerchant={m => { setMerchant(m); setStep('confirm'); }} />}
       {step === 'confirm' && merchant && <ConfirmScreen t={t} merchant={merchant} online={online} onBack={reset} onDone={r => { setResult(r); setStep('result'); }} />}
       {step === 'result' && result && <ResultScreen t={t} r={result} onDone={reset} />}
+      {step === 'ussd' && <UssdScreen t={t} onBack={() => setStep('scan')} onTry={() => setStep('ussdTry')} />}
+      {step === 'ussdTry' && <UssdSimulatorScreen t={t} onBack={() => setStep('ussd')} />}
       {step === 'shop' && <MerchantHomeScreen t={t} merchant={shop} refreshKey={tick} />}
 
       {__DEV__ && (
@@ -53,9 +67,10 @@ export default function App() {
               <View style={s.panel}>
                 <Text style={s.panelTitle}>Demo tools</Text>
                 <View style={s.panelRow}><Text style={s.panelText}>{t.demoOffline}</Text><Switch value={simOffline} onValueChange={setSimOffline} /></View>
-                {([['Welcome', 'welcome'], ['Scan to pay', 'scan'], ['Shop owner home', 'shop']] as const).map(([label, k]) => (
+                {([['Welcome', 'welcome'], ['Phone number (SMS code)', 'phone'], ['Scan to pay', 'scan'], ['Shop owner home', 'shop'], ['Feature phone (USSD)', 'ussd']] as const).map(([label, k]) => (
                   <Pressable key={k} style={s.panelBtn} onPress={() => { setStep(k); setTools(false); }}><Text style={s.panelBtnText}>{label}</Text></Pressable>
                 ))}
+                <Pressable style={s.panelBtn} onPress={() => { clearVerifiedPhone(); setVerifiedPhoneState(null); setTools(false); }}><Text style={s.panelBtnText}>Forget verified phone</Text></Pressable>
               </View>
             </Pressable>
           </Modal>

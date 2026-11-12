@@ -20,8 +20,8 @@ export type PayOutcome = {
   allowance?: { leftAmount: number; leftCount: number };
 };
 
-export async function pay(opts: { merchantId: string; amount: number; online: boolean; t: Strings }): Promise<PayOutcome> {
-  const { merchantId, amount, online, t } = opts;
+export async function pay(opts: { merchantId: string; amount: number; online: boolean; t: Strings; channel?: 'QR' | 'USSD' }): Promise<PayOutcome> {
+  const { merchantId, amount, online, t, channel = 'QR' } = opts;
   if (!online) {
     const a = await getAllowance();
     if (amount > a.leftAmount) throw new Error(t.limitAmount(a.leftAmount));
@@ -30,7 +30,7 @@ export async function pay(opts: { merchantId: string; amount: number; online: bo
   const base = {
     transactionId: `P2S-${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`.toUpperCase(),
     merchantId, customerId: 'CUS-DEMO', deviceId: 'DEV-DEMO', amount, currency: 'ZAR',
-    channel: 'QR' as const, nonce: newNonce(), offline: !online, createdAt: new Date().toISOString(),
+    channel, nonce: newNonce(), offline: !online, createdAt: new Date().toISOString(),
   };
   const { signature, publicKey } = await signTx(base);
   const tx: Tx = { ...base, signature, publicKey, status: 'LOCAL_PENDING' };
