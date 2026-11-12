@@ -25,6 +25,10 @@ beforeEach(() => {
   store.transactions.clear();
   store.usedNonces.clear();
   store.otpChallenges.clear();
+  store.wallets.clear();
+  store.users.clear();
+  store.sessions.clear();
+  store.saveWallet({ customerId: "CUS-DEMO", balance: 1000, currency: "ZAR" });
 });
 
 describe("Pay2Spaza backend", () => {
@@ -69,6 +73,61 @@ describe("Pay2Spaza backend", () => {
     expect(response.body.error).toBe("Invalid OTP");
   });
 
+  test("signs up and logs in a user", async () => {
+    const signup = await request(app)
+      .post("/api/auth/signup")
+      .send({ name: "Demo User", password: "password123", role: "customer" })
+      .expect(201);
+
+    expect(signup.body.data.user).toMatchObject({ name: "demo user", role: "customer" });
+    expect(signup.body.data.token).toEqual(expect.any(String));
+
+    const login = await request(app)
+      .post("/api/auth/login")
+      .send({ name: "DEMO USER", password: "password123" })
+      .expect(200);
+
+    expect(login.body.data.user.id).toBe(signup.body.data.user.id);
+    expect(login.body.data.token).toEqual(expect.any(String));
+  });
+
+  test("allows only admins to access the dashboard", async () => {
+    const customer = await request(app)
+      .post("/api/auth/signup")
+      .send({ name: "Customer", password: "password123", role: "customer" })
+      .expect(201);
+    const admin = await request(app)
+      .post("/api/auth/signup")
+      .send({ name: "Admin", password: "password123", role: "admin" })
+      .expect(201);
+
+    await request(app).get("/api/merchants").expect(401);
+    await request(app)
+      .get("/api/merchants")
+      .set("Authorization", `Bearer ${customer.body.data.token}`)
+      .expect(403);
+    await request(app)
+      .get("/api/merchants")
+      .set("Authorization", `Bearer ${admin.body.data.token}`)
+      .expect(200);
+  });
+
+  test("rejects duplicate and invalid signup requests", async () => {
+    await request(app)
+      .post("/api/auth/signup")
+      .send({ name: "Demo User", password: "password123", role: "customer" })
+      .expect(201);
+
+    await request(app)
+      .post("/api/auth/signup")
+      .send({ name: "demo user", password: "password123", role: "customer" })
+      .expect(409);
+
+    await request(app)
+      .post("/api/auth/signup")
+      .send({ name: "short", password: "short", role: "customer" })
+      .expect(400);
+  });
   test("GET /health returns a healthy response", async () => {
     const response = await request(app)
       .get("/health")
@@ -91,6 +150,23 @@ describe("Pay2Spaza backend", () => {
         ownerFirstName: "Thuba"
       },
       error: null
+    });
+
+  });
+
+  test("lists merchants for the dashboard", async () => {
+    const admin = await request(app)
+      .post("/api/auth/signup")
+      .send({ name: "Dashboard Admin", password: "password123", role: "admin" });
+    const response = await request(app)
+      .get("/api/merchants")
+      .set("Authorization", `Bearer ${admin.body.data.token}`)
+      .expect(200);
+
+    expect(response.body.data).toHaveLength(2);
+    expect(response.body.data[0]).toMatchObject({
+      id: expect.any(String),
+      name: expect.any(String)
     });
   });
 
@@ -121,6 +197,54 @@ describe("Pay2Spaza backend", () => {
     ]);
 
     expect(store.getTransaction(transaction.transactionId)).toBeDefined();
+    expect((await store.getWallet("CUS-DEMO")).balance).toBe(950);
+  });
+
+  test("deducts the wallet when an offline transaction is synced", async () => {
+    const transaction = makeTransaction({ offline: true, amount: 75 });
+
+    await request(app)
+      .post("/api/transactions/sync")
+      .send({ transactions: [transaction] })
+      .expect(200);
+
+    expect((await store.getWallet("CUS-DEMO")).balance).toBe(925);
+  });
+
+  test("rejects a transaction when the wallet has insufficient funds", async () => {
+    await store.saveWallet({ customerId: "CUS-DEMO", balance: 10, currency: "ZAR" });
+    const transaction = makeTransaction({ amount: 11 });
+
+    const response = await request(app)
+      .post("/api/transactions/sync")
+      .send({ transactions: [transaction] })
+      .expect(200);
+
+    expect(response.body.data.results[0]).toMatchObject({
+      status: "REJECTED",
+      reason: "Insufficient wallet balance"
+    });
+    expect(store.getTransaction(transaction.transactionId)).resolves.toBeNull();
+  });
+
+  test("creates and tops up a fake wallet", async () => {
+    const created = await request(app)
+      .post("/api/wallets")
+      .send({ customerId: "CUS-NEW", balance: 50 })
+      .expect(201);
+
+    expect(created.body.data).toMatchObject({
+      customerId: "CUS-NEW",
+      balance: 50,
+      currency: "ZAR"
+    });
+
+    const toppedUp = await request(app)
+      .post("/api/wallets/CUS-NEW/top-up")
+      .send({ amount: 25 })
+      .expect(200);
+
+    expect(toppedUp.body.data.balance).toBe(75);
   });
 
   test("rejects a replayed nonce", async () => {
@@ -214,5 +338,46 @@ describe("Pay2Spaza backend", () => {
     expect(response.body.success).toBe(true);
     expect(response.body.data.merchant.id).toBe("SPZ12345");
     expect(response.body.data.transactions).toHaveLength(1);
+  });
+
+  test("returns dashboard transactions and summary", async () => {
+    const admin = await request(app)
+      .post("/api/auth/signup")
+      .send({ name: "Summary Admin", password: "password123", role: "admin" });
+    const first = makeTransaction({ amount: 40 });
+    const second = makeTransaction({
+      amount: 60,
+      customerId: "CUS-OTHER",
+      transactionId: "TX-OTHER",
+      nonce: "NONCE-OTHER"
+    });
+
+    await request(app).post("/api/transactions/sync").send({ transactions: [first] }).expect(200);
+    await store.saveWallet({ customerId: "CUS-OTHER", balance: 100, currency: "ZAR" });
+    await request(app).post("/api/transactions/sync").send({ transactions: [second] }).expect(200);
+
+    const transactions = await request(app)
+      .get("/api/transactions?merchantId=SPZ12345")
+      .set("Authorization", `Bearer ${admin.body.data.token}`)
+      .expect(200);
+    expect(transactions.body.data.transactions).toHaveLength(2);
+
+    const summary = await request(app)
+      .get("/api/dashboard/summary")
+      .set("Authorization", `Bearer ${admin.body.data.token}`)
+      .expect(200);
+    expect(summary.body.data).toMatchObject({
+      merchantCount: 2,
+      transactionCount: 2,
+      confirmedCount: 2,
+      totalAmount: 100,
+      currency: "ZAR"
+    });
+
+    const customer = await request(app)
+      .get("/api/transactions/customer/CUS-OTHER")
+      .set("Authorization", `Bearer ${admin.body.data.token}`)
+      .expect(200);
+    expect(customer.body.data.transactions).toHaveLength(1);
   });
 });

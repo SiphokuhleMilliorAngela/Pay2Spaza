@@ -1,4 +1,4 @@
-const { saveMerchant } = require("./store");
+const { saveMerchant, saveWallet } = require("./store");
 
 const developmentMerchants = [
   {
@@ -19,6 +19,7 @@ async function seedMerchants() {
   for (const merchant of developmentMerchants) {
     await saveMerchant(merchant);
   }
+  await saveWallet({ customerId: "CUS-DEMO", balance: 1000, currency: "ZAR" });
 }
 
 function toApiMerchant(merchant) {
