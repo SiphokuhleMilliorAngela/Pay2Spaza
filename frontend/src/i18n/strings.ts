@@ -37,6 +37,26 @@ export const en = {
   noPayments: 'No payments yet today', paidChip: 'Paid', backedBy: 'Backed by customer’s reserve',
   // Dev tools
   demoOffline: 'Pretend there’s no signal',
+  // Phone number + SMS code (not in Figma yet: built with the same look as the Confirm screen)
+  phoneTitle: 'Let’s check it’s you', phoneSub: 'We’ll text you a 6-digit code.', phoneLabel: 'Your cell number',
+  phonePlaceholder: '82 123 4567', sendCode: 'Send code', sending: 'Sending…', back: 'Back',
+  phoneInvalid: 'That doesn’t look like a South African cell number. Try 082 123 4567.',
+  otpTitle: 'Enter your code', otpSent: (p: string) => `We sent a 6-digit code to ${p}.`, otpWrongNumber: 'Wrong number?',
+  otpExpiresIn: (s: string) => `Code expires in ${s}`, otpExpired: 'That code has expired.',
+  otpResend: 'Send a new code', otpResendIn: (s: number) => `Send a new code in ${s}s`,
+  verify: 'Verify', verifying: 'Checking…',
+  otpWrong: 'That code isn’t right. Check the SMS and try again.', otpExpiredMsg: 'That code has expired. Send a new one.',
+  otpTooMany: 'Too many tries. Send a new code.', otpVerifyFailed: 'We couldn’t check that code. Please try again.',
+  otpNetwork: 'We can’t reach the server. Check your connection and try again.',
+  otpNeedsSignal: 'You need signal to verify your number. Try again when you’re online.',
+  otpSendFailed: 'We couldn’t send the code. Please try again.',
+  devCode: (c: string) => `Dev mode: your code is ${c}`, devFill: 'Fill it in',
+  // Feature phone (USSD)
+  ussdTitle: 'Feature phone', ussdSub: 'No data needed. Dial *120*321#', ussdDialed: 'Dialled *120*321#',
+  ussdMenuLabel: '1 · MENU', ussdConfirmLabel: '2 · CONFIRM', ussdSmsLabel: '3 · SMS RECEIPT',
+  ussdFootnote: 'Short menus keep airtime costs low.', ussdTry: 'Try it', ussdSend: 'Send', ussdCancel: 'Cancel',
+  ussdRedial: 'Dial again', ussdReply: 'Your reply',
+  ussdDemoNote: 'Demo: any 4-digit PIN works here. The real PIN is checked by the server.',
 };
 export type Strings = typeof en;
 const zu: Partial<Strings> = {
