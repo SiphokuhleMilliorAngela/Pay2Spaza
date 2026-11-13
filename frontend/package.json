@@ -2,6 +2,12 @@
   "name": "pay2spaza-mobile",
   "version": "0.1.0",
   "main": "expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "web": "expo start --web",
+    "build": "expo export --platform web"
+  },
   "dependencies": {
     "@expo-google-fonts/caveat": "^0.2.3",
     "@expo-google-fonts/caveat-brush": "^0.2.3",
@@ -26,9 +32,6 @@
   },
   "devDependencies": {
     "@types/react": "~18.3.12",
-    "typescript": "^5.3.3"
-  },
-  "scripts": {
-    "build": "expo export --platform web"
+    "typescript": "~5.3.3"
   }
 }
