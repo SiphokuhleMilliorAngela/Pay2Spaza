@@ -9,14 +9,33 @@
     "test": "jest --runInBand"
   },
   "dependencies": {
+<<<<<<< HEAD
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.0",
     "mongoose": "^9.12.1"
+=======
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.3",
+    "mongodb": "^6.21.0",
+    "mongoose": "^9.11.4"
+>>>>>>> b95cb82a0c8fd38a98f6a37615a3169c8c81b0b9
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "nodemon": "^3.1.7",
+    "nodemon": "^3.1.14",
     "supertest": "^7.0.0"
+<<<<<<< HEAD
   }
+=======
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+>>>>>>> b95cb82a0c8fd38a98f6a37615a3169c8c81b0b9
 }

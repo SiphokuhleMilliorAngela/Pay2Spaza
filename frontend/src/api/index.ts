@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { mockApi } from './mock';
 import { Merchant, ShopTx, SyncResult, WalletInfo } from './types';
 import { cacheMerchant, getCachedMerchant, Tx } from '../database/db';
@@ -6,6 +7,15 @@ import { cacheMerchant, getCachedMerchant, Tx } from '../database/db';
 // Android emulator -> host is http://10.0.2.2:3000; a real phone needs your PC's LAN IP.
 export const USE_MOCK = true;
 export const BASE_URL = 'http://10.0.2.2:3000';
+=======
+ import { mockApi } from './mock';
+import { Merchant, SyncResult } from './types';
+import { cacheMerchant, getCachedMerchant, Tx } from '../database/db';
+
+// Local development backend.
+export const USE_MOCK = false;
+const BASE_URL = 'https://pay2spaza.onrender.com/';
+>>>>>>> b95cb82a0c8fd38a98f6a37615a3169c8c81b0b9
 
 // Contract: responses look like { success, data, error }. Returns null on any failure.
 async function call<T>(path: string, init?: RequestInit): Promise<T | null> {
