@@ -1,5 +1,8 @@
 <<<<<<< HEAD
 import { mockApi } from './mock';
+=======
+<<<<<<< HEAD
+import { mockApi } from './mock';
 import { Merchant, ShopTx, SyncResult, WalletInfo } from './types';
 import { cacheMerchant, getCachedMerchant, Tx } from '../database/db';
 
@@ -9,6 +12,7 @@ export const USE_MOCK = true;
 export const BASE_URL = 'http://10.0.2.2:3000';
 =======
  import { mockApi } from './mock';
+>>>>>>> main
 import { Merchant, SyncResult } from './types';
 import { cacheMerchant, getCachedMerchant, Tx } from '../database/db';
 
@@ -33,6 +37,19 @@ const realApi = {
   topUpWallet: (customerId: string, amount: number, publicKey: string) =>
     call<WalletInfo>('/api/wallet/topup', { method: 'POST', body: JSON.stringify({ customerId, amount, publicKey }) }),
   lookupMerchant: async (id: string): Promise<Merchant | null> => {
+<<<<<<< HEAD
+    const m = await call<Merchant>(`api/merchants/${encodeURIComponent(id)}`);
+    if (m) { cacheMerchant(m).catch(() => {}); return m; }
+    return getCachedMerchant(id); // offline or unreachable: use the saved copy
+  },
+  // Empty array when the server is unreachable, so the transactions stay queued.
+  submitTransactions: async (list: Tx[]): Promise<SyncResult[]> => {
+    const results = await call<SyncResult[]>('api/transactions/sync', {
+      method: 'POST',
+      body: JSON.stringify({ transactions: list }),
+    });
+    return Array.isArray(results) ? results : [];
+=======
     const m = await call<Merchant>(`/api/merchants/${encodeURIComponent(id)}`);
     if (m) { cacheMerchant(m).catch(() => {}); return m; }
     return getCachedMerchant(id); // offline or unreachable: use the saved copy
@@ -47,6 +64,7 @@ const realApi = {
       transactionId: String(x.transactionId), amount: Number(x.amount), createdAt: String(x.createdAt),
       channel: String(x.channel ?? 'QR'), status: x.status ?? 'CONFIRMED',
     }));
+>>>>>>> main
   },
 };
 

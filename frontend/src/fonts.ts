@@ -14,10 +14,12 @@ export const F = {
   black: 'Nunito_800ExtraBold',
 } as const;
 
+// Returns true once fonts are ready, or if they failed to load (the app then falls back
+// to system fonts instead of staying on a blank screen).
 export function useAppFonts() {
-  const [loaded] = useFonts({
+  const [loaded, error] = useFonts({
     CaveatBrush_400Regular, Caveat_400Regular, Caveat_700Bold,
     Nunito_500Medium, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold,
   });
-  return loaded;
+  return loaded || !!error;
 }
