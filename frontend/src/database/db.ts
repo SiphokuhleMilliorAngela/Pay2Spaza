@@ -1,3 +1,10 @@
+<<<<<<< HEAD
+import * as SQLite from 'expo-sqlite';
+import type { Merchant } from '../api/types';
+
+import type { Tx } from './types';
+export type { Tx } from './types';
+=======
 import { Platform } from 'react-native';
 
 export type Tx = {
@@ -15,6 +22,7 @@ export type Tx = {
   publicKey: string;
   status: 'LOCAL_PENDING' | 'SUBMITTED' | 'CONFIRMED' | 'REJECTED' | 'EXPIRED';
 };
+>>>>>>> main
 
 // In-memory array storage fallback to hold data on the web
 let webDbMemory: any[] = [];
@@ -89,4 +97,22 @@ export async function history(): Promise<Tx[]> {
   const d = await getDb();
   const rows = await d.getAllAsync<any>('SELECT * FROM tx ORDER BY createdAt DESC');
   return rows.map(r => ({ ...r, offline: !r.offline }));
+}
+
+// Merchant cache: lets a shop already looked up be found again while offline.
+async function getMerchantTable() {
+  const d = await getDb();
+  await d.execAsync(`CREATE TABLE IF NOT EXISTS merchant (
+    id TEXT PRIMARY KEY, name TEXT, ownerFirstName TEXT);`);
+  return d;
+}
+export async function cacheMerchant(m: Merchant) {
+  const d = await getMerchantTable();
+  await d.runAsync(`INSERT OR REPLACE INTO merchant VALUES (?,?,?)`, [m.id, m.name, m.ownerFirstName]);
+}
+export async function getCachedMerchant(id: string): Promise<Merchant | null> {
+  try {
+    const d = await getMerchantTable();
+    return (await d.getFirstAsync<Merchant>(`SELECT * FROM merchant WHERE id=?`, [id])) ?? null;
+  } catch { return null; }
 }
