@@ -1,5 +1,6 @@
 const {
   getMerchant,
+  debitWallet,
   saveTransaction,
   getTransaction,
   hasNonce
@@ -140,12 +141,19 @@ async function processTransactions(transactions) {
       continue;
     }
 
+    const wallet = await debitWallet(transaction.customerId, transaction.amount);
+    if (!wallet) {
+      results.push(rejected(transaction, "Insufficient wallet balance"));
+      continue;
+    }
+
     if (transaction.offline) {
       offlineCount += 1;
     }
 
     const storedTransaction = {
       ...transaction,
+      balance: wallet.balance,
       status: "CONFIRMED",
       syncedAt: new Date().toISOString()
     };
